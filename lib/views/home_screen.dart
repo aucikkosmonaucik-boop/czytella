@@ -35,45 +35,61 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<CzytellaProvider>();
     final unreadChats = provider.totalUnreadChats;
+    final isDesktop = MediaQuery.of(context).size.width > 700;
+
+    final navBar = NavigationBar(
+      selectedIndex: _currentIndex,
+      onDestinationSelected: (index) {
+        setState(() => _currentIndex = index);
+      },
+      destinations: [
+        const NavigationDestination(
+          icon: Icon(Icons.explore_outlined),
+          selectedIcon: Icon(Icons.explore),
+          label: 'Ogłoszenia',
+        ),
+        const NavigationDestination(
+          icon: Icon(Icons.auto_stories_outlined),
+          selectedIcon: Icon(Icons.auto_stories),
+          label: 'Moja Półka',
+        ),
+        const NavigationDestination(
+          icon: Icon(Icons.qr_code_scanner),
+          selectedIcon: Icon(Icons.qr_code_scanner_outlined),
+          label: 'Skaner ISBN',
+        ),
+        NavigationDestination(
+          icon: Badge(
+            isLabelVisible: unreadChats > 0,
+            label: Text('$unreadChats'),
+            child: const Icon(Icons.chat_bubble_outline),
+          ),
+          selectedIcon: Badge(
+            isLabelVisible: unreadChats > 0,
+            label: Text('$unreadChats'),
+            child: const Icon(Icons.chat_bubble),
+          ),
+          label: 'Czat',
+        ),
+      ],
+    );
 
     return Scaffold(
-      body: _buildActiveView(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() => _currentIndex = index);
-        },
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Ogłoszenia',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.auto_stories_outlined),
-            selectedIcon: Icon(Icons.auto_stories),
-            label: 'Moja Półka',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.qr_code_scanner),
-            selectedIcon: Icon(Icons.qr_code_scanner_outlined),
-            label: 'Skaner ISBN',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: unreadChats > 0,
-              label: Text('$unreadChats'),
-              child: const Icon(Icons.chat_bubble_outline),
-            ),
-            selectedIcon: Badge(
-              isLabelVisible: unreadChats > 0,
-              label: Text('$unreadChats'),
-              child: const Icon(Icons.chat_bubble),
-            ),
-            label: 'Czat',
-          ),
-        ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: _buildActiveView(),
+        ),
       ),
+      bottomNavigationBar: isDesktop
+          ? Center(
+              heightFactor: 1.0,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: navBar,
+              ),
+            )
+          : navBar,
     );
   }
 }

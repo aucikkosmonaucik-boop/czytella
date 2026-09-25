@@ -451,7 +451,9 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                   ),
                 );
                 Navigator.pop(ctx);
-                Navigator.pop(context);
+                if (widget.targetMode != ScannerTargetMode.general && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Dodano "${book.title}" do Twojej półki!'),
@@ -490,7 +492,9 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                   ),
                 );
                 Navigator.pop(ctx);
-                Navigator.pop(context);
+                if (widget.targetMode != ScannerTargetMode.general && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -526,7 +530,9 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                   exchangePreferences: 'Chętnie wymienię na inną ciekawą pozycję',
                 );
                 Navigator.pop(ctx);
-                Navigator.pop(context);
+                if (widget.targetMode != ScannerTargetMode.general && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content:

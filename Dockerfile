@@ -1,33 +1,38 @@
 # ── Stage 1: Build Flutter Web ─────────────────────────────────────────────────
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 
+USER root
+ENV HOME=/root
+RUN git config --global --add safe.directory '*'
+
 WORKDIR /app
 
+# Copy dependency specifications first to leverage Docker layer caching
 COPY pubspec.yaml pubspec.lock ./
 RUN flutter pub get
 
+# Copy source code and compile for Web
 COPY . .
 RUN flutter build web --release --no-tree-shake-icons
 
 # ── Stage 2: Serve with Nginx ───────────────────────────────────────────────────
 FROM nginx:1.27-alpine
 
-# Remove default config
-RUN rm /etc/nginx/conf.d/default.conf
+# Remove default configs
+RUN rm -rf /etc/nginx/conf.d/*
 
-# Copy nginx config with CZYTELLA_PORT placeholder
+# Copy nginx config with port placeholder
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy Flutter Web assets
+# Copy compiled Flutter Web assets
 COPY --from=build /app/build/web /usr/share/nginx/html
 
-# Copy entrypoint that substitutes $PORT at runtime
+# Copy entrypoint that handles dynamic $PORT and ports 80/8080
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Railway sets $PORT at runtime (typically 3000 or random)
+# Railway sets $PORT at runtime, exposing standard HTTP ports
 ENV PORT=8080
-
-EXPOSE 8080
+EXPOSE 80 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
