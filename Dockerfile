@@ -7,8 +7,8 @@ RUN git config --global --add safe.directory '*'
 
 WORKDIR /app
 
-# Copy dependency specifications first to leverage Docker layer caching
-COPY pubspec.yaml pubspec.lock ./
+# Copy pubspec and resolve dependencies for the current Dart environment
+COPY pubspec.yaml ./
 RUN flutter pub get
 
 # Copy source code and compile for Web
