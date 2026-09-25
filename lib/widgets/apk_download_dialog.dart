@@ -213,14 +213,14 @@ class ApkDownloadDialog extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.download_rounded, size: 20),
                       label: const Text(
-                        'Pobierz APK (GitHub Releases)',
+                        'Pobierz APK bezpośrednio (v1.0.0)',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       onPressed: () {
-                        UrlLauncherService.openGithubReleases();
+                        UrlLauncherService.openDirectApkDownload();
                       },
                     ),
                   ),
@@ -228,19 +228,37 @@ class ApkDownloadDialog extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.launch_rounded, size: 16),
+                      label: const Text(
+                        'Pobierz APK (GitHub Releases)',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      onPressed: () {
+                        UrlLauncherService.openGithubReleases();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                          horizontal: 14, vertical: 11),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     icon: const Icon(Icons.code_rounded, size: 16),
                     label: const Text(
-                      'Zobacz kod na GitHubie',
+                      'Kod źródłowy',
                       style: TextStyle(fontSize: 12),
                     ),
                     onPressed: () {

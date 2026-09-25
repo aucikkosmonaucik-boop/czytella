@@ -1,0 +1,72 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release (np. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Prepare APK artifacts
+        run: |
+          mkdir -p release-artifacts
+          cp build/app/outputs/flutter-apk/app-release.apk release-artifacts/Czytella.apk
+          cp build/app/outputs/flutter-apk/app-release.apk release-artifacts/Czytella-v1.0.0.apk
+
+      - name: Create GitHub Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.tag_name || 'v1.0.0') }}
+          name: Czytella Mobile v1.0.0 (Android APK)
+          body: |
+            ## 📱 Oficjalna aplikacja mobilna Czytella na system Android
+
+            Pobierz i zainstaluj plik `.apk` na telefonie:
+            - **[Czytella.apk](https://github.com/aucikkosmonaucik-boop/czytella/releases/latest/download/Czytella.apk)**
+
+            ### 🚀 Funkcje aplikacji:
+            - 📸 **Skaner kodów ISBN aparatem** – automatyczne rozpoznawanie książek i okładek
+            - 📍 **Lokalna społeczność** – wymiana i sprzedaż książek w promieniu 5 km
+            - 💬 **Wbudowany czat** – bezpieczne umawianie wymian bez podawania numeru telefonu
+            - 📚 **Moja Półka** – organizacja domowej biblioteki i lista życzeń („Szukam”)
+            - 🔔 **Inteligentne powiadomienia** – gdy ktoś w okolicy wystawi książkę z Twojej listy
+          files: |
+            release-artifacts/Czytella.apk
+            release-artifacts/Czytella-v1.0.0.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
