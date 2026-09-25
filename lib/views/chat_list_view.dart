@@ -32,7 +32,7 @@ class _ChatListViewState extends State<ChatListView> {
 
     if (isDesktop) {
       ChatConversation? selectedConv;
-      if (_selectedConversationId != null) {
+      if (_selectedConversationId != null && conversations.isNotEmpty) {
         selectedConv = conversations.firstWhere(
           (c) => c.id == _selectedConversationId,
           orElse: () => conversations.first,
@@ -91,21 +91,37 @@ class _ChatListViewState extends State<ChatListView> {
                       isEmbedded: true,
                     )
                   : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chat_bubble_outline,
-                              size: 64, color: Colors.grey.shade300),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Wybierz rozmowę z listy po lewej',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.chat_bubble_outline_rounded,
+                                size: 64, color: Colors.grey.shade300),
+                            const SizedBox(height: 16),
+                            Text(
+                              conversations.isEmpty
+                                  ? 'Brak aktywnych rozmów'
+                                  : 'Wybierz rozmowę z listy po lewej',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
+                            if (conversations.isEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Gdy napiszesz do innego czytelnika w sprawie ogłoszenia książki,\nrozmowa pojawi się tutaj.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
             ),
