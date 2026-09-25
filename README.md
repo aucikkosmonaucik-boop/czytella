@@ -102,3 +102,23 @@ flutter test
 # Sprawdzenie analizy kodu
 flutter analyze
 ```
+
+---
+
+## 🌐 Wdrożenie na Vercel i Railway.com
+
+Aplikacja jest w pełni przystosowana do działania jako strona WWW (Flutter Web) i posiada gotowe pliki konfiguracyjne do wdrożenia na **Vercel** oraz **Railway.com**.
+
+### 🔺 Opcja 1: Wdrożenie na Vercel
+1. Zaloguj się na [Vercel.com](https://vercel.com) i kliknij **"Add New Project"**.
+2. Zaimportuj repozytorium `aucikkosmonaucik-boop/czytella`.
+3. Vercel automatycznie wykryje plik `vercel.json` i skrypt `build_vercel.sh`.
+4. Kliknij **"Deploy"** — Vercel skompiluje wersję webową i wygeneruje publiczny adres HTTPS (np. `czytella.vercel.app`).
+
+### 🚂 Opcja 2: Wdrożenie na Railway.com
+1. Zaloguj się na [Railway.com](https://railway.com) i kliknij **"New Project"**.
+2. Wybierz **"Deploy from GitHub repo"** i wskaż `aucikkosmonaucik-boop/czytella`.
+3. Railway automatycznie wykryje plik `Dockerfile` (wieloetapowy build Flutter + Nginx).
+4. Przejdź do zakładki **Settings** w Railway i w sekcji **Networking** kliknij **"Generate Domain"**.
+5. Twoja aplikacja będzie dostępna pod adresem np. `czytella-production.up.railway.app`!
+
