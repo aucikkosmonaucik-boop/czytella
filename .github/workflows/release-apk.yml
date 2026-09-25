@@ -43,14 +43,15 @@ jobs:
       - name: Prepare APK artifacts
         run: |
           mkdir -p release-artifacts
+          TAG="${{ github.ref_type == 'tag' && github.ref_name || (inputs.tag_name || 'v1.0.1') }}"
           cp build/app/outputs/flutter-apk/app-release.apk release-artifacts/Czytella.apk
-          cp build/app/outputs/flutter-apk/app-release.apk release-artifacts/Czytella-v1.0.0.apk
+          cp build/app/outputs/flutter-apk/app-release.apk "release-artifacts/Czytella-${TAG}.apk"
 
       - name: Create GitHub Release & Upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.tag_name || 'v1.0.0') }}
-          name: Czytella Mobile v1.0.0 (Android APK)
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.tag_name || 'v1.0.1') }}
+          name: Czytella Mobile ${{ github.ref_type == 'tag' && github.ref_name || (inputs.tag_name || 'v1.0.1') }} (Android APK)
           body: |
             ## 📱 Oficjalna aplikacja mobilna Czytella na system Android
 
