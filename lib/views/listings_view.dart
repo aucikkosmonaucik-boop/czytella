@@ -7,6 +7,8 @@ import '../widgets/desktop_footer.dart';
 import '../widgets/location_filter_sheet.dart';
 import '../widgets/mobile_app_banner.dart';
 import 'create_listing_dialog.dart';
+import 'auth_dialog.dart';
+import 'user_profile_dialog.dart';
 
 class ListingsView extends StatefulWidget {
   final Function(int)? onNavigate;
@@ -486,6 +488,36 @@ class _ListingsViewState extends State<ListingsView> {
                 ),
                 tooltip: 'Filtry i lokalizacja',
                 onPressed: () => LocationFilterSheet.show(context),
+              ),
+              IconButton(
+                icon: provider.isAuthenticated
+                    ? CircleAvatar(
+                        radius: 13,
+                        backgroundColor: const Color(0xFF1E5128),
+                        child: Text(
+                          provider.currentUser!.initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.person_outline_rounded),
+                tooltip: provider.isAuthenticated
+                    ? 'Mój profil ()'
+                    : 'Zaloguj się / Rejestracja',
+                onPressed: () {
+                  if (provider.isAuthenticated) {
+                    UserProfileDialog.show(
+                      context,
+                      onNavigateToShelf: () => widget.onNavigate?.call(1),
+                      onNavigateToListings: () => widget.onNavigate?.call(0),
+                    );
+                  } else {
+                    AuthDialog.show(context);
+                  }
+                },
               ),
             ],
             bottom: PreferredSize(

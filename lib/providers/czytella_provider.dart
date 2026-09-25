@@ -6,6 +6,7 @@ import '../models/user_book.dart';
 import '../models/wishlist_book.dart';
 import '../models/listing.dart';
 import '../models/chat_message.dart';
+import '../models/user_profile.dart';
 import '../services/distance_service.dart';
 import '../services/sample_data.dart';
 
@@ -14,6 +15,11 @@ class CzytellaProvider with ChangeNotifier {
   String _currentCity = 'Warszawa';
   double _userLatitude = 52.2297;
   double _userLongitude = 21.0122;
+
+  // User Profile & Authentication
+  UserProfile? _currentUser;
+  UserProfile? get currentUser => _currentUser;
+  bool get isAuthenticated => _currentUser != null;
 
   // Data lists
   List<Listing> _listings = [];
@@ -499,6 +505,105 @@ class CzytellaProvider with ChangeNotifier {
     });
   }
 
+  // --- USER AUTH & PROFILE ---
+
+  Future<bool> register({
+    required String name,
+    required String email,
+    required String password,
+    required String city,
+    String? bio,
+  }) async {
+    final cleanEmail = email.trim().toLowerCase();
+    final cleanName = name.trim();
+    if (cleanEmail.isEmpty || cleanName.isEmpty) return false;
+
+    final profile = UserProfile(
+      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+      name: cleanName,
+      email: cleanEmail,
+      city: city.trim().isNotEmpty ? city.trim() : _currentCity,
+      bio: bio?.trim(),
+      createdAt: DateTime.now(),
+      rating: 5.0,
+      completedExchanges: 0,
+    );
+
+    _currentUser = profile;
+    _currentCity = profile.city;
+    await _saveState();
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> login({
+    required String email,
+    required String password,
+  }) async {
+    final cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail.isEmpty) return false;
+
+    final prefs = await SharedPreferences.getInstance();
+    final savedProfileJson = prefs.getString('czytella_user_profile');
+    if (savedProfileJson != null) {
+      try {
+        final decoded = json.decode(savedProfileJson);
+        final profile = UserProfile.fromJson(decoded);
+        if (profile.email.toLowerCase() == cleanEmail) {
+          _currentUser = profile;
+          _currentCity = profile.city;
+          await _saveState();
+          notifyListeners();
+          return true;
+        }
+      } catch (_) {}
+    }
+
+    final namePart = cleanEmail.split('@').first;
+    final formattedName = namePart.isNotEmpty
+        ? '${namePart[0].toUpperCase()}${namePart.substring(1)}'
+        : 'Czytelnik';
+
+    _currentUser = UserProfile(
+      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+      name: formattedName,
+      email: cleanEmail,
+      city: _currentCity,
+      createdAt: DateTime.now(),
+      rating: 5.0,
+      completedExchanges: 0,
+    );
+    await _saveState();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> logout() async {
+    _currentUser = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('czytella_user_profile');
+    await prefs.setBool('czytella_is_logged_in', false);
+    notifyListeners();
+  }
+
+  Future<void> updateProfile({
+    String? name,
+    String? city,
+    String? bio,
+  }) async {
+    if (_currentUser == null) return;
+    _currentUser = _currentUser!.copyWith(
+      name: (name != null && name.trim().isNotEmpty) ? name.trim() : null,
+      city: (city != null && city.trim().isNotEmpty) ? city.trim() : null,
+      bio: bio?.trim(),
+    );
+    if (city != null && city.trim().isNotEmpty) {
+      _currentCity = city.trim();
+    }
+    await _saveState();
+    notifyListeners();
+  }
+
   // --- PERSISTENCE ---
 
   Future<void> _loadInitialData() async {
@@ -509,6 +614,20 @@ class CzytellaProvider with ChangeNotifier {
       _currentCity = prefs.getString('user_city') ?? 'Warszawa';
       _userLatitude = prefs.getDouble('user_lat') ?? 52.2297;
       _userLongitude = prefs.getDouble('user_lon') ?? 21.0122;
+
+      // User Profile & Authentication
+      if (_currentUser == null) {
+        final isLoggedIn = prefs.getBool('czytella_is_logged_in') ?? false;
+        final profileJson = prefs.getString('czytella_user_profile');
+        if (isLoggedIn && profileJson != null) {
+          try {
+            final decoded = json.decode(profileJson);
+            _currentUser = UserProfile.fromJson(decoded);
+          } catch (_) {
+            _currentUser = null;
+          }
+        }
+      }
 
       // Listings (clean up any legacy cached sample listings)
       final listingsJson = prefs.getString('czytella_listings_v2');
@@ -523,22 +642,28 @@ class CzytellaProvider with ChangeNotifier {
         _listings = [];
       }
 
-      // User books
+      // User books (clean up any legacy cached sample books ub_1, ub_2)
       final userBooksJson = prefs.getString('czytella_user_books');
       if (userBooksJson != null) {
         final List decoded = json.decode(userBooksJson);
-        _userBooks = decoded.map((e) => UserBook.fromJson(e)).toList();
+        _userBooks = decoded
+            .map((e) => UserBook.fromJson(e))
+            .where((b) => b.id != 'ub_1' && b.id != 'ub_2')
+            .toList();
       } else {
-        _userBooks = SampleData.getInitialUserBooks();
+        _userBooks = [];
       }
 
-      // Wishlist
+      // Wishlist (clean up any legacy cached sample wishlist books w_1, w_2, w_3)
       final wishlistJson = prefs.getString('czytella_wishlist');
       if (wishlistJson != null) {
         final List decoded = json.decode(wishlistJson);
-        _wishlist = decoded.map((e) => WishlistBook.fromJson(e)).toList();
+        _wishlist = decoded
+            .map((e) => WishlistBook.fromJson(e))
+            .where((w) => w.id != 'w_1' && w.id != 'w_2' && w.id != 'w_3')
+            .toList();
       } else {
-        _wishlist = SampleData.getInitialWishlist();
+        _wishlist = [];
       }
 
       // Conversations
@@ -546,9 +671,10 @@ class CzytellaProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error loading saved state: $e');
       _listings = [];
-      _userBooks = SampleData.getInitialUserBooks();
-      _wishlist = SampleData.getInitialWishlist();
-      _conversations = SampleData.getInitialConversations();
+      _userBooks = [];
+      _wishlist = [];
+      _conversations = [];
+      _currentUser = null;
     } finally {
       _isInitialized = true;
       notifyListeners();
@@ -561,6 +687,15 @@ class CzytellaProvider with ChangeNotifier {
       await prefs.setString('user_city', _currentCity);
       await prefs.setDouble('user_lat', _userLatitude);
       await prefs.setDouble('user_lon', _userLongitude);
+
+      if (_currentUser != null) {
+        await prefs.setString(
+            'czytella_user_profile', json.encode(_currentUser!.toJson()));
+        await prefs.setBool('czytella_is_logged_in', true);
+      } else {
+        await prefs.remove('czytella_user_profile');
+        await prefs.setBool('czytella_is_logged_in', false);
+      }
 
       final listingsJson =
           json.encode(_listings.map((l) => l.toJson()).toList());

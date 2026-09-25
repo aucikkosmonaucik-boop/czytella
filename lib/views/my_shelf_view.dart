@@ -9,6 +9,8 @@ import '../services/distance_service.dart';
 import 'listing_detail_screen.dart';
 import 'add_book_dialog.dart';
 import 'isbn_scanner_view.dart';
+import 'auth_dialog.dart';
+import 'user_profile_dialog.dart';
 
 class MyShelfView extends StatefulWidget {
   final int initialTabIndex;
@@ -56,6 +58,36 @@ class _MyShelfViewState extends State<MyShelfView>
                 'Moja Półka Czytelnika',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
+        actions: isDesktop
+            ? null
+            : [
+                IconButton(
+                  icon: provider.isAuthenticated
+                      ? CircleAvatar(
+                          radius: 13,
+                          backgroundColor: const Color(0xFF1E5128),
+                          child: Text(
+                            provider.currentUser!.initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.person_outline_rounded),
+                  tooltip: provider.isAuthenticated
+                      ? 'Panel czytelnika'
+                      : 'Zaloguj się',
+                  onPressed: () {
+                    if (provider.isAuthenticated) {
+                      UserProfileDialog.show(context);
+                    } else {
+                      AuthDialog.show(context);
+                    }
+                  },
+                ),
+              ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: theme.colorScheme.primary,
@@ -109,12 +141,108 @@ class _MyShelfViewState extends State<MyShelfView>
     );
   }
 
+  Widget _buildAccountStatusBanner(
+      BuildContext context, CzytellaProvider provider) {
+    if (provider.isAuthenticated) {
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.green.shade200),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 14,
+              backgroundColor: const Color(0xFF1E5128),
+              child: Text(
+                provider.currentUser!.initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Zalogowano:  ()',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green.shade900,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Icon(Icons.settings_outlined,
+                  size: 14, color: Color(0xFF1E5128)),
+              label: const Text(
+                'Panel',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E5128)),
+              ),
+              onPressed: () => UserProfileDialog.show(context),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBFBFA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_sync_outlined, color: Colors.grey.shade700, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Zaloguj się, aby zsynchronizować półkę między urządzeniami.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+            ),
+          ),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => AuthDialog.show(context),
+            child: const Text('Zaloguj się',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // TAB 1: Moje książki na wymianę/sprzedaż
   Widget _buildMyBooksTab(BuildContext context, CzytellaProvider provider) {
     final books = provider.userBooks;
 
     if (books.isEmpty) {
-      return Center(
+      return Column(
+        children: [
+          _buildAccountStatusBanner(context, provider),
+          Expanded(
+            child: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
@@ -159,12 +287,16 @@ class _MyShelfViewState extends State<MyShelfView>
             ],
           ),
         ),
-      );
-    }
+      ),
+    ),
+  ],
+);
+  }
 
-    return ListView(
+  return ListView(
       padding: const EdgeInsets.symmetric(vertical: 12),
       children: [
+        _buildAccountStatusBanner(context, provider),
         // Informational header
         Container(
           margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -420,7 +552,11 @@ class _MyShelfViewState extends State<MyShelfView>
     final wishes = provider.wishlist;
 
     if (wishes.isEmpty) {
-      return Center(
+      return Column(
+        children: [
+          _buildAccountStatusBanner(context, provider),
+          Expanded(
+            child: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
@@ -466,12 +602,16 @@ class _MyShelfViewState extends State<MyShelfView>
             ],
           ),
         ),
-      );
-    }
+      ),
+    ),
+  ],
+);
+  }
 
-    return ListView(
+  return ListView(
       padding: const EdgeInsets.symmetric(vertical: 12),
       children: [
+        _buildAccountStatusBanner(context, provider),
         // Wishlist Radar Header
         Container(
           margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),

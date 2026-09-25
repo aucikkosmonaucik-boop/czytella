@@ -8,6 +8,8 @@ import 'isbn_scanner_view.dart';
 import 'chat_list_view.dart';
 import 'create_listing_dialog.dart';
 import '../widgets/apk_download_dialog.dart';
+import 'auth_dialog.dart';
+import 'user_profile_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -279,6 +281,103 @@ class _HomeScreenState extends State<HomeScreen> {
                                         );
                                       },
                                     ),
+
+                                    const SizedBox(width: 10),
+
+                                    // User Account Button
+                                    if (provider.isAuthenticated)
+                                      InkWell(
+                                        onTap: () => UserProfileDialog.show(
+                                          context,
+                                          onNavigateToShelf: () =>
+                                              setState(() => _currentIndex = 1),
+                                          onNavigateToListings: () =>
+                                              setState(() => _currentIndex = 0),
+                                        ),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade50,
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            border: Border.all(
+                                                color: Colors.green.shade200),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 12,
+                                                backgroundColor:
+                                                    const Color(0xFF1E5128),
+                                                child: Text(
+                                                  provider
+                                                      .currentUser!.initials,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              ConstrainedBox(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                        maxWidth: 100),
+                                                child: Text(
+                                                  provider.currentUser!.name,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color:
+                                                        Color(0xFF1E5128),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 2),
+                                              const Icon(
+                                                  Icons.arrow_drop_down,
+                                                  size: 16,
+                                                  color: Color(0xFF1E5128)),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      OutlinedButton.icon(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              const Color(0xFF1E5128),
+                                          side: BorderSide(
+                                              color: Colors.grey.shade400),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 8),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        icon: const Icon(
+                                            Icons.person_outline_rounded,
+                                            size: 16),
+                                        label: const Text(
+                                          'Zaloguj się',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        onPressed: () =>
+                                            AuthDialog.show(context),
+                                      ),
                                   ],
                                 ),
                               ),
