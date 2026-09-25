@@ -77,6 +77,54 @@ class DistanceService {
       latitude: 53.0138,
       longitude: 18.5984,
     ),
+    CityLocation(
+      name: 'Białystok',
+      region: 'podlaskie',
+      latitude: 53.1325,
+      longitude: 23.1688,
+    ),
+    CityLocation(
+      name: 'Rzeszów',
+      region: 'podkarpackie',
+      latitude: 50.0412,
+      longitude: 21.9991,
+    ),
+    CityLocation(
+      name: 'Kielce',
+      region: 'świętokrzyskie',
+      latitude: 50.8661,
+      longitude: 20.6286,
+    ),
+    CityLocation(
+      name: 'Olsztyn',
+      region: 'warmińsko-mazurskie',
+      latitude: 53.7784,
+      longitude: 20.4801,
+    ),
+    CityLocation(
+      name: 'Zielona Góra',
+      region: 'lubuskie',
+      latitude: 51.9356,
+      longitude: 15.5062,
+    ),
+    CityLocation(
+      name: 'Opole',
+      region: 'opolskie',
+      latitude: 50.6751,
+      longitude: 17.9213,
+    ),
+    CityLocation(
+      name: 'Bydgoszcz',
+      region: 'kujawsko-pomorskie',
+      latitude: 53.1235,
+      longitude: 18.0084,
+    ),
+    CityLocation(
+      name: 'Gorzów Wielkopolski',
+      region: 'lubuskie',
+      latitude: 52.7325,
+      longitude: 15.2369,
+    ),
   ];
 
   /// Calculates the great-circle distance between two points in kilometers

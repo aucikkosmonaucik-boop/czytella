@@ -57,4 +57,36 @@ void main() {
     expect(IsbnLookupService.isValidIsbnFormat('9788308064177'), isTrue);
     expect(IsbnLookupService.isValidIsbnFormat('12345'), isFalse);
   });
+
+  test('DistanceService contains cities representing all 16 Polish voivodeships', () {
+    final allVoivodeships = {
+      'dolnośląskie',
+      'kujawsko-pomorskie',
+      'lubelskie',
+      'lubuskie',
+      'łódzkie',
+      'małopolskie',
+      'mazowieckie',
+      'opolskie',
+      'podkarpackie',
+      'podlaskie',
+      'pomorskie',
+      'śląskie',
+      'świętokrzyskie',
+      'warmińsko-mazurskie',
+      'wielkopolskie',
+      'zachodniopomorskie',
+    };
+
+    final representedRegions = DistanceService.popularCities.map((c) => c.region).toSet();
+    for (final voivodeship in allVoivodeships) {
+      expect(
+        representedRegions.contains(voivodeship),
+        isTrue,
+        reason: 'Missing voivodeship: $voivodeship',
+      );
+    }
+    expect(DistanceService.popularCities.length, greaterThanOrEqualTo(16));
+  });
 }
+
