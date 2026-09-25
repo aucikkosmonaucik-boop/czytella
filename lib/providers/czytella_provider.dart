@@ -16,7 +16,7 @@ class CzytellaProvider with ChangeNotifier {
   double _userLongitude = 21.0122;
 
   // Data lists
-  List<Listing> _listings = SampleData.getInitialListings();
+  List<Listing> _listings = [];
   List<UserBook> _userBooks = SampleData.getInitialUserBooks();
   List<WishlistBook> _wishlist = SampleData.getInitialWishlist();
   List<ChatConversation> _conversations = SampleData.getInitialConversations();
@@ -510,13 +510,17 @@ class CzytellaProvider with ChangeNotifier {
       _userLatitude = prefs.getDouble('user_lat') ?? 52.2297;
       _userLongitude = prefs.getDouble('user_lon') ?? 21.0122;
 
-      // Listings
-      final listingsJson = prefs.getString('czytella_listings');
+      // Listings (clean up any legacy cached sample listings)
+      final listingsJson = prefs.getString('czytella_listings_v2');
       if (listingsJson != null) {
         final List decoded = json.decode(listingsJson);
-        _listings = decoded.map((e) => Listing.fromJson(e)).toList();
+        _listings = decoded
+            .map((e) => Listing.fromJson(e))
+            .where((l) => l.isUserListing)
+            .toList();
       } else {
-        _listings = SampleData.getInitialListings();
+        prefs.remove('czytella_listings');
+        _listings = [];
       }
 
       // User books
@@ -541,7 +545,7 @@ class CzytellaProvider with ChangeNotifier {
       _conversations = SampleData.getInitialConversations();
     } catch (e) {
       debugPrint('Error loading saved state: $e');
-      _listings = SampleData.getInitialListings();
+      _listings = [];
       _userBooks = SampleData.getInitialUserBooks();
       _wishlist = SampleData.getInitialWishlist();
       _conversations = SampleData.getInitialConversations();
@@ -560,7 +564,7 @@ class CzytellaProvider with ChangeNotifier {
 
       final listingsJson =
           json.encode(_listings.map((l) => l.toJson()).toList());
-      await prefs.setString('czytella_listings', listingsJson);
+      await prefs.setString('czytella_listings_v2', listingsJson);
 
       final userBooksJson =
           json.encode(_userBooks.map((b) => b.toJson()).toList());

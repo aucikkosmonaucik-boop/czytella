@@ -734,25 +734,103 @@ class _ListingsViewState extends State<ListingsView> {
   }
 
   Widget _buildEmptyState(BuildContext context, CzytellaProvider provider) {
+    if (provider.allListings.isEmpty) {
+      return Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.green.shade200, width: 2),
+                ),
+                child: const Icon(
+                  Icons.auto_stories_outlined,
+                  size: 44,
+                  color: Color(0xFF1E5128),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Brak aktywnych ogłoszeń',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Text(
+                  'Bądź pierwszą osobą, która doda książkę na wymianę lub sprzedaż! Wystaw książkę w kilka sekund i wymieniaj się z sąsiadami.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E5128),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text(
+                  'Dodaj pierwsze ogłoszenie',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    builder: (ctx) => const CreateListingDialog(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.amber.shade50,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.location_off_outlined,
-                size: 48,
+                size: 44,
                 color: Colors.amber.shade800,
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             const Text(
               'Brak ofert w wybranej lokalizacji',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
@@ -766,7 +844,7 @@ class _ListingsViewState extends State<ListingsView> {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             Wrap(
               spacing: 10,
               children: [
