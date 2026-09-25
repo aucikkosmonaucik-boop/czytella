@@ -43,13 +43,19 @@ class _MyShelfViewState extends State<MyShelfView>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final provider = context.watch<CzytellaProvider>();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 800;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Moja Półka Czytelnika',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        toolbarHeight: isDesktop ? 0 : kToolbarHeight,
+        automaticallyImplyLeading: false,
+        title: isDesktop
+            ? null
+            : const Text(
+                'Moja Półka Czytelnika',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: theme.colorScheme.primary,
@@ -78,26 +84,28 @@ class _MyShelfViewState extends State<MyShelfView>
           _buildWishlistTab(context, provider),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.qr_code_scanner),
-        label: Text(
-          _tabController.index == 0
-              ? 'Zeskanuj na półkę'
-              : 'Zeskanuj do życzeń',
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (ctx) => IsbnScannerView(
-                targetMode: _tabController.index == 0
-                    ? ScannerTargetMode.myBooks
-                    : ScannerTargetMode.wishlist,
+      floatingActionButton: isDesktop
+          ? null
+          : FloatingActionButton.extended(
+              icon: const Icon(Icons.qr_code_scanner),
+              label: Text(
+                _tabController.index == 0
+                    ? 'Zeskanuj na półkę'
+                    : 'Zeskanuj do życzeń',
               ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (ctx) => IsbnScannerView(
+                      targetMode: _tabController.index == 0
+                          ? ScannerTargetMode.myBooks
+                          : ScannerTargetMode.wishlist,
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 
@@ -194,20 +202,51 @@ class _MyShelfViewState extends State<MyShelfView>
           ),
         ),
 
-        // List of books
-        ...books.map((userBook) => _buildUserBookCard(context, provider, userBook)),
+        // List of books (grid on desktop, list on mobile)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 650) {
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 520,
+                    mainAxisExtent: 175,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: books.length,
+                  itemBuilder: (context, i) => _buildUserBookCard(
+                      context, provider, books[i], isGrid: true),
+                );
+              } else {
+                return Column(
+                  children: books
+                      .map((userBook) =>
+                          _buildUserBookCard(context, provider, userBook))
+                      .toList(),
+                );
+              }
+            },
+          ),
+        ),
         const SizedBox(height: 80),
       ],
     );
   }
 
   Widget _buildUserBookCard(
-      BuildContext context, CzytellaProvider provider, UserBook ub) {
+      BuildContext context, CzytellaProvider provider, UserBook ub,
+      {bool isGrid = false}) {
     final theme = Theme.of(context);
 
     return Card(
       elevation: 1,
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      margin: isGrid
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
@@ -243,7 +282,10 @@ class _MyShelfViewState extends State<MyShelfView>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -265,7 +307,6 @@ class _MyShelfViewState extends State<MyShelfView>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
                       if (ub.price != null)
                         Text(
                           '${ub.price!.toStringAsFixed(0)} zł',
@@ -274,7 +315,6 @@ class _MyShelfViewState extends State<MyShelfView>
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      const Spacer(),
                       // Listed badge
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -469,21 +509,52 @@ class _MyShelfViewState extends State<MyShelfView>
           ),
         ),
 
-        // List of Wishlist items
-        ...wishes.map((wish) => _buildWishlistCard(context, provider, wish)),
+        // List of Wishlist items (grid on desktop, list on mobile)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 650) {
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 520,
+                    mainAxisExtent: 220,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: wishes.length,
+                  itemBuilder: (context, i) => _buildWishlistCard(
+                      context, provider, wishes[i], isGrid: true),
+                );
+              } else {
+                return Column(
+                  children: wishes
+                      .map((wish) =>
+                          _buildWishlistCard(context, provider, wish))
+                      .toList(),
+                );
+              }
+            },
+          ),
+        ),
         const SizedBox(height: 80),
       ],
     );
   }
 
   Widget _buildWishlistCard(
-      BuildContext context, CzytellaProvider provider, WishlistBook wish) {
+      BuildContext context, CzytellaProvider provider, WishlistBook wish,
+      {bool isGrid = false}) {
     final theme = Theme.of(context);
     final matches = provider.getMatchesForWishlist(wish);
 
     return Card(
       elevation: 1,
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      margin: isGrid
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(

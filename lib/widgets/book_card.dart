@@ -8,10 +8,12 @@ import '../views/listing_detail_screen.dart';
 
 class ListingCard extends StatelessWidget {
   final Listing listing;
+  final EdgeInsetsGeometry? margin;
 
   const ListingCard({
     super.key,
     required this.listing,
+    this.margin,
   });
 
   @override
@@ -23,7 +25,7 @@ class ListingCard extends StatelessWidget {
 
     return Card(
       elevation: 1.5,
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -55,10 +57,12 @@ class ListingCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Top badges row: Type + Nearby indicator
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         _buildTypeBadge(listing, theme),
-                        const SizedBox(width: 6),
                         if (isNearby)
                           Container(
                             padding: const EdgeInsets.symmetric(

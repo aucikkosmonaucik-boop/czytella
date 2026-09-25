@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../models/chat_message.dart';
 import '../providers/czytella_provider.dart';
 import '../widgets/safe_exchange_badge.dart';
 import 'chat_detail_screen.dart';
 
-class ChatListView extends StatelessWidget {
+class ChatListView extends StatefulWidget {
   const ChatListView({super.key});
+
+  @override
+  State<ChatListView> createState() => _ChatListViewState();
+}
+
+class _ChatListViewState extends State<ChatListView> {
+  String? _selectedConversationId;
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +22,99 @@ class ChatListView extends StatelessWidget {
     final provider = context.watch<CzytellaProvider>();
     final conversations = provider.conversations;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 800;
+
+    // Default select first conversation on desktop if none selected
+    if (isDesktop && _selectedConversationId == null && conversations.isNotEmpty) {
+      _selectedConversationId = conversations.first.id;
+    }
+
+    if (isDesktop) {
+      ChatConversation? selectedConv;
+      if (_selectedConversationId != null) {
+        selectedConv = conversations.firstWhere(
+          (c) => c.id == _selectedConversationId,
+          orElse: () => conversations.first,
+        );
+      }
+
+      return Scaffold(
+        body: Row(
+          children: [
+            // Left pane: Chat list
+            Container(
+              width: 380,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  right: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Wiadomości i czaty',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1E5128),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: SafeExchangeBadge(),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: _buildConversationList(
+                      context,
+                      theme,
+                      provider,
+                      conversations,
+                      isDesktop: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Right pane: Active conversation
+            Expanded(
+              child: selectedConv != null
+                  ? ChatDetailScreen(
+                      conversation: selectedConv,
+                      isEmbedded: true,
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline,
+                              size: 64, color: Colors.grey.shade300),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Wybierz rozmowę z listy po lewej',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Mobile layout
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -23,179 +124,220 @@ class ChatListView extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Safety Banner
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 14),
             child: SafeExchangeBadge(),
           ),
-
-          // Conversation List
           Expanded(
-            child: conversations.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chat_bubble_outline,
-                              size: 56, color: Colors.grey.shade400),
-                          const SizedBox(height: 14),
-                          const Text(
-                            'Brak aktywnych rozmów',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Gdy znajdziesz interesującą książkę w ogłoszeniach, kliknij "Napisz na czacie", aby bezpiecznie dogadać wymianę.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    itemCount: conversations.length,
-                    separatorBuilder: (_, __) =>
-                        Divider(height: 1, color: Colors.grey.shade200),
-                    itemBuilder: (context, index) {
-                      final conv = conversations[index];
-                      final hasUnread = conv.unreadCount > 0;
-
-                      return ListTile(
-                        onTap: () {
-                          provider.markConversationAsRead(conv.id);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (ctx) =>
-                                  ChatDetailScreen(conversation: conv),
-                            ),
-                          );
-                        },
-                        leading: Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor:
-                                  theme.colorScheme.primaryContainer,
-                              child: Text(
-                                conv.otherUserName.substring(0, 1),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                            if (hasUnread)
-                              Positioned(
-                                right: 0,
-                                top: 0,
-                                child: Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.green,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                conv.otherUserName,
-                                style: TextStyle(
-                                  fontWeight: hasUnread
-                                      ? FontWeight.bold
-                                      : FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              DateFormat('HH:mm').format(conv.updatedAt),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 2),
-                            // Book badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '📖 ${conv.bookTitle}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey.shade800,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              conv.lastMessagePreview,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: hasUnread
-                                    ? Colors.black87
-                                    : Colors.grey.shade600,
-                                fontWeight: hasUnread
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ],
-                        ),
-                        trailing: conv.bookCoverUrl != null
-                            ? Container(
-                                width: 34,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(4),
-                                  color: Colors.grey.shade200,
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: Image.network(
-                                  conv.bookCoverUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      const Icon(Icons.book, size: 20),
-                                ),
-                              )
-                            : null,
-                      );
-                    },
-                  ),
+            child: _buildConversationList(
+              context,
+              theme,
+              provider,
+              conversations,
+              isDesktop: false,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildConversationList(
+    BuildContext context,
+    ThemeData theme,
+    CzytellaProvider provider,
+    List<ChatConversation> conversations, {
+    required bool isDesktop,
+  }) {
+    if (conversations.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.chat_bubble_outline,
+                  size: 56, color: Colors.grey.shade400),
+              const SizedBox(height: 14),
+              const Text(
+                'Brak aktywnych rozmów',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Gdy znajdziesz interesującą książkę w ogłoszeniach, kliknij "Napisz na czacie", aby bezpiecznie dogadać wymianę.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: conversations.length,
+      separatorBuilder: (_, __) =>
+          Divider(height: 1, color: Colors.grey.shade200),
+      itemBuilder: (context, index) {
+        final conv = conversations[index];
+        final hasUnread = conv.unreadCount > 0;
+        final isSelected = isDesktop && conv.id == _selectedConversationId;
+
+        return Container(
+          color: isSelected ? const Color(0xFFEAF4EA) : Colors.transparent,
+          child: ListTile(
+            selected: isSelected,
+            onTap: () {
+              provider.markConversationAsRead(conv.id);
+              if (isDesktop) {
+                setState(() => _selectedConversationId = conv.id);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (ctx) => ChatDetailScreen(conversation: conv),
+                  ),
+                );
+              }
+            },
+            leading: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: isSelected
+                      ? const Color(0xFF1E5128)
+                      : theme.colorScheme.primaryContainer,
+                  child: Text(
+                    conv.otherUserName.substring(0, 1),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                if (hasUnread)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    conv.otherUserName,
+                    style: TextStyle(
+                      fontWeight:
+                          hasUnread ? FontWeight.bold : FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  _formatTime(conv.lastActivity),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: hasUnread
+                        ? theme.colorScheme.primary
+                        : Colors.grey.shade500,
+                    fontWeight:
+                        hasUnread ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.menu_book,
+                        size: 12, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        conv.bookTitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade700,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  conv.lastMessageSnippet,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: hasUnread ? Colors.black87 : Colors.grey.shade600,
+                    fontWeight:
+                        hasUnread ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+            trailing: hasUnread
+                ? Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1E5128),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${conv.unreadCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                : const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} m';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours} h';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} d';
+    } else {
+      return DateFormat('d MMM', 'pl').format(dt);
+    }
   }
 }

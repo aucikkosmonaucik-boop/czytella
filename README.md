@@ -4,6 +4,20 @@
 
 ---
 
+## 📱 Pobierz Aplikację Mobilną na Androida (APK)
+
+Oficjalna aplikacja mobilna Czytella jest dostępna do pobrania w formacie `.apk` bezpośrednio z **GitHub Releases**:
+
+🔗 **[Pobierz najnowszą wersję Czytella APK z GitHub Releases](https://github.com/aucikkosmonaucik-boop/czytella/releases)**
+
+### Dlaczego warto zainstalować aplikację mobilną na telefonie?
+- 📷 **Aparat jako skaner kodów ISBN**: Błyskawiczne rozpoznawanie kodów kreskowych z okładek i grzbietów książek za pomocą aparatu w telefonie (automatyczne pobieranie metadanych z Google Books & Open Library).
+- 📍 **Lokalny radar 5 km**: Bądź na bieżąco z ogłoszeniami sąsiadów w Twojej dzielnicy i wymieniaj się książkami po drodze z pracy lub spaceru.
+- 💬 **Prywatny komunikator w kieszeni**: Umawiaj spotkania i dogaduj wymiany bez udostępniania prywatnego numeru telefonu czy kont społecznościowych.
+- ⚡ **100% darmowa i otwarta**: Projekt open-source, wolny od trackerów i reklam.
+
+---
+
 ## 🌟 Główne Funkcjonalności
 
 ### 1. 🔍 Skaner Kodów ISBN i Pobieranie Metadanych

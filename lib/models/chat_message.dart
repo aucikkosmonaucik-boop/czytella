@@ -190,4 +190,9 @@ class ChatConversation {
     }
     return last.text;
   }
+
+  String get lastMessageSnippet => lastMessagePreview;
+
+  DateTime get lastActivity =>
+      messages.isNotEmpty ? messages.last.timestamp : updatedAt;
 }

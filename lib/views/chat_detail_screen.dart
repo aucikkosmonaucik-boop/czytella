@@ -8,8 +8,13 @@ import '../widgets/safe_exchange_badge.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final ChatConversation conversation;
+  final bool isEmbedded;
 
-  const ChatDetailScreen({super.key, required this.conversation});
+  const ChatDetailScreen({
+    super.key,
+    required this.conversation,
+    this.isEmbedded = false,
+  });
 
   @override
   State<ChatDetailScreen> createState() => _ChatDetailScreenState();
@@ -65,7 +70,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 0,
+        automaticallyImplyLeading: !widget.isEmbedded,
+        titleSpacing: widget.isEmbedded ? 16 : 0,
         title: Row(
           children: [
             CircleAvatar(

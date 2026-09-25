@@ -6,6 +6,7 @@ import '../models/wishlist_book.dart';
 import '../models/listing.dart';
 import '../providers/czytella_provider.dart';
 import '../services/isbn_lookup_service.dart';
+import '../widgets/apk_download_dialog.dart';
 
 enum ScannerTargetMode {
   general,
@@ -234,6 +235,52 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Tip: Mobile APK
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.phone_android,
+                          size: 18, color: Color(0xFF1E5128)),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Wskazówka: Aby skanować fizyczne kody ISBN aparatem telefonu, pobierz naszą aplikację APK na Androida!',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF1E5128),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () => ApkDownloadDialog.show(context),
+                        child: const Text(
+                          'Pobierz APK',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E5128),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 // Preset Barcode Tapper for Quick Demo
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
