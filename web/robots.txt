@@ -1,0 +1,12 @@
+# Robots.txt for Czytella (https://czytella.pl)
+User-agent: *
+Allow: /
+
+# Googlebot specific rules
+User-agent: Googlebot
+Allow: /
+Allow: /icons/
+Allow: /favicon.ico
+Allow: /favicon.png
+
+Sitemap: https://czytella.pl/sitemap.xml

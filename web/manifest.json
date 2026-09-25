@@ -1,14 +1,21 @@
 {
-    "name": "czytella",
-    "short_name": "czytella",
+    "name": "Czytella – Wymiana i Sprzedaż Książek",
+    "short_name": "Czytella",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FAFAF7",
+    "theme_color": "#1E5128",
+    "description": "Lokalna platforma społecznościowa miłośników książek. Wymieniaj się i sprzedawaj książki w promieniu 5 km, skanuj kody ISBN aparatem telefonu i dogaduj wymiany na bezpiecznym czacie.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "lang": "pl",
+    "categories": ["books", "lifestyle", "shopping"],
     "icons": [
+        {
+            "src": "favicon.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",

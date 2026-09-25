@@ -73,8 +73,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.menu_book_rounded,
-                                      size: 26, color: Color(0xFF1E5128)),
+                                  Image.asset(
+                                    'assets/images/logo.png',
+                                    width: 28,
+                                    height: 28,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.menu_book_rounded,
+                                      size: 26,
+                                      color: Color(0xFF1E5128),
+                                    ),
+                                  ),
                                   const SizedBox(width: 8),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,

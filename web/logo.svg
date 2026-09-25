@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="100%" height="100%">
+  <!-- Czytella Book Logo -->
+  <g fill="#1E5128">
+    <!-- Left Page (Filled) -->
+    <path d="M 23,8 C 17,6 9,7 4,9 C 3.4,9.2 3,9.7 3,10.3 L 3,36 C 3,36.7 3.5,37.3 4.2,37.1 C 9,35.3 16.5,34.5 23,36.8 Z" />
+    <!-- Right Page (Outline with 3 reading lines) -->
+    <path d="M 25,8 C 31,6 39,7 44,9 C 44.6,9.2 45,9.7 45,10.3 L 45,36 C 45,36.7 44.5,37.3 43.8,37.1 C 39,35.3 31.5,34.5 25,36.8 Z" fill="none" stroke="#1E5128" stroke-width="2.6" stroke-linejoin="round" />
+    <!-- 3 Reading text lines on right page -->
+    <line x1="28.5" y1="16" x2="41" y2="17.5" stroke="#1E5128" stroke-width="2.2" stroke-linecap="round" />
+    <line x1="28.5" y1="22.5" x2="41" y2="24" stroke="#1E5128" stroke-width="2.2" stroke-linecap="round" />
+    <line x1="28.5" y1="29" x2="41" y2="30.5" stroke="#1E5128" stroke-width="2.2" stroke-linecap="round" />
+  </g>
+</svg>

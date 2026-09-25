@@ -80,16 +80,24 @@ class DesktopFooter extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.menu_book_rounded,
-                      color: Colors.white,
-                      size: 22,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 32,
+                      height: 32,
+                      errorBuilder: (_, __, ___) => Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2E7D32),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -256,7 +264,19 @@ class DesktopFooter extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.menu_book, color: Color(0xFF4CAF50), size: 24),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 24,
+                height: 24,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.menu_book,
+                  color: Color(0xFF4CAF50),
+                  size: 24,
+                ),
+              ),
+            ),
             const SizedBox(width: 8),
             const Text(
               'Czytella',
