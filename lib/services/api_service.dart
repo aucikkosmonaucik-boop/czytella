@@ -5,10 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/listing.dart';
 
 class ApiService {
+  static const String _defaultProductionUrl =
+      'https://czytella-production.up.railway.app';
   static const String _prefApiUrlKey = 'czytella_backend_api_url';
   
-  // Default Railway production URL fallback (or empty for relative path on Web)
-  static String _baseUrl = kIsWeb ? '' : 'https://czytella-production.up.railway.app';
+  // Default Railway production URL
+  static String _baseUrl = _defaultProductionUrl;
 
   static String get baseUrl => _baseUrl;
 
@@ -18,6 +20,8 @@ class ApiService {
       final savedUrl = prefs.getString(_prefApiUrlKey);
       if (savedUrl != null && savedUrl.trim().isNotEmpty) {
         _baseUrl = savedUrl.trim();
+      } else {
+        _baseUrl = _defaultProductionUrl;
       }
     } catch (e) {
       debugPrint('Error loading API URL: $e');
@@ -25,19 +29,18 @@ class ApiService {
   }
 
   static Future<void> setBaseUrl(String newUrl) async {
-    _baseUrl = newUrl.trim();
+    _baseUrl =
+        newUrl.trim().isNotEmpty ? newUrl.trim() : _defaultProductionUrl;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefApiUrlKey, _baseUrl);
   }
 
   static Uri _getUri(String path) {
-    if (_baseUrl.isEmpty && kIsWeb) {
-      // Relative path for same-origin web deployment
-      return Uri.parse(path);
-    }
-    final cleanBase = _baseUrl.endsWith('/')
-        ? _baseUrl.substring(0, _baseUrl.length - 1)
-        : _baseUrl;
+    final effectiveBase =
+        _baseUrl.isNotEmpty ? _baseUrl : _defaultProductionUrl;
+    final cleanBase = effectiveBase.endsWith('/')
+        ? effectiveBase.substring(0, effectiveBase.length - 1)
+        : effectiveBase;
     final cleanPath = path.startsWith('/') ? path : '/$path';
     return Uri.parse('$cleanBase$cleanPath');
   }
