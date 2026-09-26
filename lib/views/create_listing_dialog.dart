@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/book.dart';
 import '../models/listing.dart';
 import '../providers/czytella_provider.dart';
+import 'auth_dialog.dart';
 
 class CreateListingDialog extends StatefulWidget {
   const CreateListingDialog({super.key});
@@ -40,6 +41,94 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
     final theme = Theme.of(context);
     final viewInsets = MediaQuery.of(context).viewInsets;
     final viewPadding = MediaQuery.of(context).viewPadding;
+
+    if (!provider.isAuthenticated) {
+      return Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: SafeArea(
+          top: false,
+          bottom: true,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_person_outlined,
+                  size: 40,
+                  color: Color(0xFF1E5128),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Wymagane logowanie',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E5128),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Dodawanie ogłoszeń w Czytelli jest dostępne tylko dla zalogowanych użytkowników. Zaloguj się lub załóż darmowe konto, aby móc wymieniać i sprzedawać książki.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E5128),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  icon: const Icon(Icons.login_rounded),
+                  label: const Text(
+                    'Zaloguj się lub załóż konto',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () async {
+                    final loggedIn = await AuthDialog.show(context);
+                    if (loggedIn != true && context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Anuluj'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    }
 
     return Container(
       constraints: BoxConstraints(
@@ -239,7 +328,16 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
+                    if (!provider.isAuthenticated) {
+                      final loggedIn = await AuthDialog.show(context);
+                      if (loggedIn != true || !context.mounted) {
+                        return;
+                      }
+                    }
+                    if (!context.mounted) {
+                      return;
+                    }
                     if (_formKey.currentState!.validate()) {
                       final title = _titleController.text.trim();
                       final author = _authorController.text.trim();
@@ -268,6 +366,9 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                         district: district.isNotEmpty ? district : null,
                       );
 
+                      if (!context.mounted) {
+                        return;
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

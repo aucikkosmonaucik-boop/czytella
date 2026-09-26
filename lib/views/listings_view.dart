@@ -745,7 +745,17 @@ class _ListingsViewState extends State<ListingsView> {
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Dodaj ogłoszenie'),
-        onPressed: () {
+        onPressed: () async {
+          final provider = context.read<CzytellaProvider>();
+          if (!provider.isAuthenticated) {
+            final loggedIn = await AuthDialog.show(context);
+            if (loggedIn != true || !context.mounted) {
+              return;
+            }
+          }
+          if (!context.mounted) {
+            return;
+          }
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -850,7 +860,17 @@ class _ListingsViewState extends State<ListingsView> {
                   'Dodaj pierwsze ogłoszenie',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  final provider = context.read<CzytellaProvider>();
+                  if (!provider.isAuthenticated) {
+                    final loggedIn = await AuthDialog.show(context);
+                    if (loggedIn != true || !context.mounted) {
+                      return;
+                    }
+                  }
+                  if (!context.mounted) {
+                    return;
+                  }
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,

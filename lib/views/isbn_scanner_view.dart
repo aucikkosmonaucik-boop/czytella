@@ -10,6 +10,7 @@ import '../services/isbn_lookup_service.dart';
 import '../services/distance_service.dart';
 import '../widgets/apk_download_dialog.dart';
 import '../widgets/book_cover_widget.dart';
+import 'auth_dialog.dart';
 
 enum ScannerTargetMode {
   general,
@@ -936,7 +937,16 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
+                      if (!provider.isAuthenticated) {
+                        final loggedIn = await AuthDialog.show(context);
+                        if (loggedIn != true || !mounted) {
+                          return;
+                        }
+                      }
+                      if (!ctx.mounted) {
+                        return;
+                      }
                       final priceVal = double.tryParse(priceController.text.trim());
                       final finalizedBook =
                           currentBook.copyWith(condition: selectedCondition);
@@ -954,8 +964,12 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                       );
                       Navigator.pop(ctx);
                       if (widget.targetMode != ScannerTargetMode.general &&
+                          mounted &&
                           Navigator.canPop(context)) {
                         Navigator.pop(context);
+                      }
+                      if (!mounted) {
+                        return;
                       }
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

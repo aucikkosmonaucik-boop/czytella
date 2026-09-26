@@ -230,7 +230,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                           fontSize: 12,
                                         ),
                                       ),
-                                      onPressed: () {
+                                      onPressed: () async {
+                                        if (!provider.isAuthenticated) {
+                                          final loggedIn =
+                                              await AuthDialog.show(context);
+                                          if (loggedIn != true ||
+                                              !context.mounted) {
+                                            return;
+                                          }
+                                        }
+                                        if (!context.mounted) {
+                                          return;
+                                        }
                                         showModalBottomSheet(
                                           context: context,
                                           isScrollControlled: true,

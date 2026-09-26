@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:czytella/providers/czytella_provider.dart';
 import 'package:czytella/views/auth_dialog.dart';
 import 'package:czytella/views/user_profile_dialog.dart';
+import 'package:czytella/views/create_listing_dialog.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -135,5 +136,50 @@ void main() {
     expect(find.text('Przejdź do Mojej Półki'), findsOneWidget);
     expect(find.text('Edytuj dane profilu'), findsOneWidget);
     expect(find.text('Wyloguj się z Czytelli'), findsOneWidget);
+  });
+
+  testWidgets('CreateListingDialog requires authentication', (WidgetTester tester) async {
+    final provider = CzytellaProvider();
+
+    // 1. Unauthenticated state -> shows login barrier
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: CreateListingDialog(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Wymagane logowanie'), findsOneWidget);
+    expect(find.text('Zaloguj się lub załóż konto'), findsOneWidget);
+    expect(find.text('Dodaj nowe ogłoszenie'), findsNothing);
+
+    // 2. Authenticated state -> shows listing form
+    await provider.register(
+      name: 'Adam',
+      email: 'adam@czytella.pl',
+      password: 'password123',
+      city: 'Kraków',
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: CreateListingDialog(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Dodaj nowe ogłoszenie'), findsOneWidget);
+    expect(find.text('Tytuł książki *'), findsOneWidget);
+    expect(find.text('Wymagane logowanie'), findsNothing);
   });
 }
