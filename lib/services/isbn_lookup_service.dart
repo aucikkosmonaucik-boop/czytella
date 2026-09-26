@@ -80,31 +80,57 @@ class IsbnLookupService {
     ),
   ];
 
-  /// Normalize ISBN string: remove dashes, spaces, and trim
+  /// Normalize ISBN string: remove dashes, spaces, and non-ISBN characters
   static String normalizeIsbn(String input) {
-    return input.replaceAll(RegExp(r'[-\s]'), '').trim();
+    return input.replaceAll(RegExp(r'[^0-9Xx]'), '').toUpperCase();
   }
 
   /// Check if string looks like valid ISBN-10 or ISBN-13
   static bool isValidIsbnFormat(String input) {
     final cleaned = normalizeIsbn(input);
     if (cleaned.length == 10) {
-      return RegExp(r'^\d{9}[\dX]$', caseSensitive: false).hasMatch(cleaned);
+      return RegExp(r'^\d{9}[\dX]$').hasMatch(cleaned);
     } else if (cleaned.length == 13) {
       return RegExp(r'^\d{13}$').hasMatch(cleaned);
     }
     return false;
   }
 
+  static String _cleanBnTitle(String rawTitle) {
+    var title = rawTitle.trim();
+    if (title.contains(' / ')) {
+      final parts = title.split(' / ');
+      title = parts[0].trim();
+    }
+    title = title.replaceAll(RegExp(r'[\s\.,;:]+$'), '');
+    return title.isEmpty ? rawTitle : title;
+  }
+
+  static String _cleanBnAuthor(String rawAuthor) {
+    var author = rawAuthor.trim();
+    author = author.replaceAll(RegExp(r'\s*\(\s*\d{4}[^)]*\)'), '');
+    final commaIndex = author.indexOf(',');
+    if (commaIndex != -1) {
+      final lastName = author.substring(0, commaIndex).trim();
+      final rest = author.substring(commaIndex + 1).trim();
+      final firstName = rest.split(RegExp(r'\s+')).first;
+      author = '$firstName $lastName';
+    }
+    author = author.replaceAll(RegExp(r'[\s\.,;:]+$'), '');
+    return author.isEmpty ? rawAuthor : author;
+  }
+
   /// Look up book details by ISBN.
   /// 1) Checks preset catalog for instant recognition
-  /// 2) Queries Google Books API
-  /// 3) Falls back to Open Library API
+  /// 2) Queries Biblioteka Narodowa (National Library of Poland) API
+  /// 3) Queries Google Books API
+  /// 4) Falls back to Open Library API
+  /// 5) Generates editable fallback book record
   static Future<Book?> lookupIsbn(String rawIsbn) async {
     final isbn = normalizeIsbn(rawIsbn);
     if (isbn.isEmpty) return null;
 
-    // Check fast preset catalog first
+    // 1) Check fast preset catalog first
     final presetMatch = demoIsbns.firstWhere(
       (p) => normalizeIsbn(p.isbn) == isbn,
       orElse: () => const SampleIsbn(isbn: '', title: '', author: '', genre: ''),
@@ -118,12 +144,67 @@ class IsbnLookupService {
         author: presetMatch.author,
         categories: [presetMatch.genre],
         coverUrl: presetMatch.coverUrl,
-        description: 'Książka: ${presetMatch.title} autorstwa ${presetMatch.author}. Klasyka gatunku ${presetMatch.genre}.',
+        description:
+            'Książka: ${presetMatch.title} autorstwa ${presetMatch.author}. Gatunek: ${presetMatch.genre}.',
         condition: BookCondition.veryGood,
       );
     }
 
-    // Try Google Books API
+    // 2) Try Biblioteka Narodowa (data.bn.org.pl) API for Polish books
+    try {
+      final bnUrl = Uri.parse(
+        'https://data.bn.org.pl/api/institutions/bibs.json?isbnIssn=$isbn',
+      );
+      final response = await http.get(bnUrl).timeout(
+        const Duration(seconds: 4),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        final bibs = data['bibs'] as List<dynamic>?;
+        if (bibs != null && bibs.isNotEmpty) {
+          final firstBib = bibs[0] as Map<String, dynamic>;
+          final rawTitle = firstBib['title'] as String?;
+          final rawAuthor = firstBib['author'] as String?;
+
+          if (rawTitle != null && rawTitle.isNotEmpty) {
+            final title = _cleanBnTitle(rawTitle);
+            final author = rawAuthor != null && rawAuthor.isNotEmpty
+                ? _cleanBnAuthor(rawAuthor)
+                : 'Autor nieznany';
+            final publisher = firstBib['publisher'] as String?;
+            final pubYearStr = firstBib['publicationYear'] as String?;
+            int? publishYear;
+            if (pubYearStr != null) {
+              final yearMatch = RegExp(r'\b\d{4}\b').firstMatch(pubYearStr);
+              if (yearMatch != null) {
+                publishYear = int.tryParse(yearMatch.group(0)!);
+              }
+            }
+            final genre = (firstBib['genre'] as String?) ??
+                (firstBib['domain'] as String?) ??
+                'Literatura';
+
+            return Book(
+              id: 'book_${DateTime.now().millisecondsSinceEpoch}',
+              isbn: isbn,
+              title: title,
+              author: author,
+              publisher: publisher?.replaceAll(RegExp(r'[\s\.,;:]+$'), ''),
+              publishYear: publishYear,
+              categories: [genre],
+              description: 'Książka: $title, autor: $author.',
+              coverUrl: 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg',
+              condition: BookCondition.veryGood,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Biblioteka Narodowa lookup error: $e');
+    }
+
+    // 3) Try Google Books API
     try {
       final googleUrl = Uri.parse(
         'https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn',
@@ -185,7 +266,7 @@ class IsbnLookupService {
       debugPrint('Google Books lookup failed: $e');
     }
 
-    // Try Open Library API
+    // 4) Try Open Library API
     try {
       final openLibUrl = Uri.parse(
         'https://openlibrary.org/api/books?bibkeys=ISBN:$isbn&format=json&jscmd=data',
@@ -239,7 +320,7 @@ class IsbnLookupService {
       debugPrint('OpenLibrary lookup failed: $e');
     }
 
-    // If both web APIs returned nothing, create a fallback book with the ISBN
+    // 5) Fallback book with the ISBN so user can still add it
     return Book(
       id: 'book_${DateTime.now().millisecondsSinceEpoch}',
       isbn: isbn,
