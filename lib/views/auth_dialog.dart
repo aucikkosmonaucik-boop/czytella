@@ -98,25 +98,6 @@ class _AuthDialogState extends State<AuthDialog>
     }
   }
 
-  Future<void> _handleDemoLogin() async {
-    setState(() => _loginLoading = true);
-    final provider = context.read<CzytellaProvider>();
-    await provider.login(
-      email: 'jan.czytelnik@czytella.pl',
-      password: 'demo_password_123',
-    );
-    if (!mounted) return;
-    setState(() => _loginLoading = false);
-    Navigator.of(context).pop(true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Zalogowano na konto demonstracyjne: Jan Czytelnik'),
-        backgroundColor: Color(0xFF1E5128),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   Future<void> _handleRegister() async {
     if (!_registerFormKey.currentState!.validate()) return;
     if (!_acceptTerms) {
@@ -340,48 +321,6 @@ class _AuthDialogState extends State<AuthDialog>
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
               onPressed: _loginLoading ? null : _handleLogin,
-            ),
-            const SizedBox(height: 14),
-
-            // Divider or demo
-            Row(
-              children: [
-                Expanded(child: Divider(color: Colors.grey.shade300)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    'LUB',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade500),
-                  ),
-                ),
-                Expanded(child: Divider(color: Colors.grey.shade300)),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // Demo Login Button
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                side: BorderSide(color: Colors.green.shade700),
-              ),
-              icon: const Icon(Icons.play_circle_outline_rounded,
-                  color: Color(0xFF1E5128)),
-              label: const Text(
-                'Szybkie logowanie demo (Jan Czytelnik)',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E5128),
-                ),
-              ),
-              onPressed: _loginLoading ? null : _handleDemoLogin,
             ),
             const SizedBox(height: 16),
 

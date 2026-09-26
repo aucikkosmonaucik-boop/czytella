@@ -85,7 +85,8 @@ void main() {
     expect(find.text('Logowanie'), findsOneWidget);
     expect(find.text('Rejestracja'), findsOneWidget);
     expect(find.text('Zaloguj się do swojego profilu'), findsOneWidget);
-    expect(find.text('Szybkie logowanie demo (Jan Czytelnik)'), findsOneWidget);
+    expect(find.text('Zaloguj się'), findsOneWidget);
+    expect(find.text('Szybkie logowanie demo (Jan Czytelnik)'), findsNothing);
 
     // Test Register tab
     await tester.pumpWidget(
