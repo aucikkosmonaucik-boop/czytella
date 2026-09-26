@@ -7,7 +7,9 @@ import '../models/wishlist_book.dart';
 import '../models/listing.dart';
 import '../providers/czytella_provider.dart';
 import '../services/isbn_lookup_service.dart';
+import '../services/distance_service.dart';
 import '../widgets/apk_download_dialog.dart';
+import '../widgets/book_cover_widget.dart';
 
 enum ScannerTargetMode {
   general,
@@ -471,6 +473,12 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
     final provider = context.read<CzytellaProvider>();
     Book currentBook = initialBook;
 
+    // Price controller
+    final priceController = TextEditingController(text: '20');
+    final prefController = TextEditingController();
+    ListingType selectedType = ListingType.both;
+    BookCondition selectedCondition = currentBook.condition;
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -485,288 +493,563 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
             top: 16,
             bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-              // Book Card Preview
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 75,
-                    height: 110,
-                    decoration: BoxDecoration(
+                // Book Card Preview
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BookCoverWidget(
+                      book: currentBook,
+                      width: 80,
+                      height: 120,
                       borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey.shade200,
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: currentBook.coverUrl != null &&
-                            currentBook.coverUrl!.isNotEmpty
-                        ? Image.network(
-                            currentBook.coverUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.book, size: 36),
-                          )
-                        : const Icon(Icons.book, size: 36),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.green.shade300),
-                              ),
-                              child: Text(
-                                'Pomyślnie zeskanowano!',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green.shade900,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border:
+                                      Border.all(color: Colors.green.shade300),
+                                ),
+                                child: Text(
+                                  'Pomyślnie zeskanowano!',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade900,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined, size: 18),
-                              tooltip: 'Edytuj tytuł i autora',
-                              onPressed: () async {
-                                final titleCtrl = TextEditingController(
-                                    text: currentBook.title);
-                                final authorCtrl = TextEditingController(
-                                    text: currentBook.author);
-                                final edited = await showDialog<bool>(
-                                  context: sheetContext,
-                                  builder: (dCtx) => AlertDialog(
-                                    title: const Text('Edytuj dane książki'),
-                                    content: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        TextField(
-                                          controller: titleCtrl,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Tytuł książki',
-                                            border: OutlineInputBorder(),
+                              const Spacer(),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.edit_outlined, size: 18),
+                                tooltip: 'Edytuj dane książki',
+                                onPressed: () async {
+                                  final titleCtrl = TextEditingController(
+                                      text: currentBook.title);
+                                  final authorCtrl = TextEditingController(
+                                      text: currentBook.author);
+                                  final coverCtrl = TextEditingController(
+                                      text: currentBook.coverUrl ?? '');
+                                  final edited = await showDialog<bool>(
+                                    context: sheetContext,
+                                    builder: (dCtx) => AlertDialog(
+                                      title: const Text('Edytuj dane książki'),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          TextField(
+                                            controller: titleCtrl,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Tytuł książki',
+                                              border: OutlineInputBorder(),
+                                            ),
                                           ),
+                                          const SizedBox(height: 10),
+                                          TextField(
+                                            controller: authorCtrl,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Autor',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          TextField(
+                                            controller: coverCtrl,
+                                            decoration: const InputDecoration(
+                                              labelText:
+                                                  'Link do okładki (URL, opcjonalnie)',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dCtx, false),
+                                          child: const Text('Anuluj'),
                                         ),
-                                        const SizedBox(height: 12),
-                                        TextField(
-                                          controller: authorCtrl,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Autor',
-                                            border: OutlineInputBorder(),
-                                          ),
+                                        FilledButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dCtx, true),
+                                          child: const Text('Zapisz'),
                                         ),
                                       ],
                                     ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dCtx, false),
-                                        child: const Text('Anuluj'),
+                                  );
+                                  if (edited == true && sheetContext.mounted) {
+                                    setSheetState(() {
+                                      currentBook = currentBook.copyWith(
+                                        title: titleCtrl.text.trim().isNotEmpty
+                                            ? titleCtrl.text.trim()
+                                            : currentBook.title,
+                                        author: authorCtrl.text.trim().isNotEmpty
+                                            ? authorCtrl.text.trim()
+                                            : currentBook.author,
+                                        coverUrl: coverCtrl.text.trim().isNotEmpty
+                                            ? coverCtrl.text.trim()
+                                            : currentBook.coverUrl,
+                                      );
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            currentBook.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            currentBook.author,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'ISBN: ${currentBook.isbn}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 10),
+
+                // Typ oferty (Wymiana / Sprzedaż / Oba)
+                const Text('Typ oferty:',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Wymiana lub sprzedaż'),
+                      selected: selectedType == ListingType.both,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedType = ListingType.both),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Tylko sprzedaż'),
+                      selected: selectedType == ListingType.sale,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedType = ListingType.sale),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Tylko wymiana'),
+                      selected: selectedType == ListingType.exchange,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) => setSheetState(
+                          () => selectedType = ListingType.exchange),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Price Section (if sale or both)
+                if (selectedType != ListingType.exchange) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Twoja proponowana cena (PLN)',
+                            suffixText: 'zł',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.payments_outlined),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    children: ['10', '15', '20', '25', '30', '50'].map((p) {
+                      return ActionChip(
+                        label: Text('$p zł'),
+                        onPressed: () =>
+                            setSheetState(() => priceController.text = p),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Stan książki
+                const Text('Stan egzemplarza:',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  children: BookCondition.values.map((cond) {
+                    return ChoiceChip(
+                      label: Text(cond.label),
+                      selected: selectedCondition == cond,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedCondition = cond),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+
+                // Miasto / Lokalizacja
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_on,
+                          size: 18, color: Color(0xFF1E5128)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Miasto ogłoszenia: ${provider.currentCity}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () async {
+                          final cities = DistanceService.popularCities;
+                          final customCityCtrl = TextEditingController();
+
+                          await showDialog(
+                            context: sheetContext,
+                            builder: (dCtx) => AlertDialog(
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.location_city,
+                                      color: Color(0xFF1E5128)),
+                                  SizedBox(width: 8),
+                                  Text('Wybierz Twoje miasto'),
+                                ],
+                              ),
+                              content: SizedBox(
+                                width: double.maxFinite,
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Wskaż miasto, w którym wystawiasz książki do wymiany/sprzedaży:',
+                                        style: TextStyle(fontSize: 12),
                                       ),
-                                      FilledButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dCtx, true),
-                                        child: const Text('Zapisz'),
+                                      const SizedBox(height: 12),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: cities.map((c) {
+                                          return ChoiceChip(
+                                            label: Text(c.name),
+                                            selected: c.name.toLowerCase() ==
+                                                provider.currentCity
+                                                    .toLowerCase(),
+                                            selectedColor:
+                                                const Color(0xFFD6E8D5),
+                                            onSelected: (_) {
+                                              provider.setUserLocation(
+                                                cityName: c.name,
+                                                latitude: c.latitude,
+                                                longitude: c.longitude,
+                                              );
+                                              setSheetState(() {});
+                                              Navigator.pop(dCtx);
+                                            },
+                                          );
+                                        }).toList(),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      const Divider(),
+                                      const SizedBox(height: 6),
+                                      const Text('Lub wpisz inne miasto:',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: TextField(
+                                              controller: customCityCtrl,
+                                              decoration: const InputDecoration(
+                                                hintText: 'np. Sopot, Zakopane',
+                                                border: OutlineInputBorder(),
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 8),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          FilledButton(
+                                            onPressed: () {
+                                              final val =
+                                                  customCityCtrl.text.trim();
+                                              if (val.isNotEmpty) {
+                                                provider.setUserLocation(
+                                                  cityName: val,
+                                                  latitude:
+                                                      provider.userLatitude,
+                                                  longitude:
+                                                      provider.userLongitude,
+                                                );
+                                                setSheetState(() {});
+                                                Navigator.pop(dCtx);
+                                              }
+                                            },
+                                            child: const Text('Zapisz'),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                );
-                                if (edited == true && sheetContext.mounted) {
-                                  setSheetState(() {
-                                    currentBook = currentBook.copyWith(
-                                      title: titleCtrl.text.trim().isNotEmpty
-                                          ? titleCtrl.text.trim()
-                                          : currentBook.title,
-                                      author: authorCtrl.text.trim().isNotEmpty
-                                          ? authorCtrl.text.trim()
-                                          : currentBook.author,
-                                    );
-                                  });
-                                }
-                              },
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dCtx),
+                                  child: const Text('Zamknij'),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          currentBook.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          currentBook.author,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'ISBN: ${currentBook.isbn}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ),
+                          );
+                        },
+                        child: const Text('Zmień miasto',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 12),
 
-              // Action Choice 1: Add to User Shelf (Tab 1: Moje książki na wymianę/sprzedaż)
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.teal.shade50,
-                    shape: BoxShape.circle,
+                // Preferencje wymiany
+                TextField(
+                  controller: prefController,
+                  decoration: const InputDecoration(
+                    labelText: 'Preferencje wymiany (opcjonalnie)',
+                    hintText: 'np. chętnie wymienię na inną ciekawą powieść',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
-                  child: const Icon(Icons.library_books, color: Colors.teal),
                 ),
-                title: const Text(
-                  'Dodaj do: Moje książki (Wymiana/Sprzedaż)',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-                subtitle: const Text(
-                  'Trafi do Twojej półki książek gotowych do wymiany',
-                  style: TextStyle(fontSize: 11),
-                ),
-                onTap: () {
-                  provider.addUserBook(
-                    UserBook(
-                      id: 'ub_${DateTime.now().millisecondsSinceEpoch}',
-                      book: currentBook,
-                      type: UserBookType.both,
-                      price: 25.0,
-                    ),
-                  );
-                  Navigator.pop(ctx);
-                  if (widget.targetMode != ScannerTargetMode.general &&
-                      Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text('Dodano "${currentBook.title}" do Twojej półki!'),
-                    ),
-                  );
-                },
-              ),
+                const SizedBox(height: 18),
 
-              // Action Choice 2: Add to Wishlist (Tab 2: Książki których szukam)
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.pink.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.favorite, color: Colors.pink),
-                ),
-                title: const Text(
-                  'Dodaj do: Książki których szukam (Lista życzeń)',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-                subtitle: const Text(
-                  'Czytella powiadomi Cię, gdy ktoś w okolicy wystawi ten tytuł',
-                  style: TextStyle(fontSize: 11),
-                ),
-                onTap: () {
-                  provider.addWishlistBook(
-                    WishlistBook(
-                      id: 'w_${DateTime.now().millisecondsSinceEpoch}',
-                      isbn: currentBook.isbn,
-                      title: currentBook.title,
-                      author: currentBook.author,
-                      coverUrl: currentBook.coverUrl,
-                      priority: WishlistPriority.high,
+                // Main Action 1: Wystaw jako publiczne ogłoszenie
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E5128),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                  );
-                  Navigator.pop(ctx);
-                  if (widget.targetMode != ScannerTargetMode.general &&
-                      Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'Dodano "${currentBook.title}" do listy książek, których szukasz!'),
+                    icon: const Icon(Icons.campaign),
+                    label: const Text(
+                      'Wystaw jako ogłoszenie na giełdzie',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                  );
-                },
-              ),
+                    onPressed: () {
+                      final priceVal = double.tryParse(priceController.text.trim());
+                      final finalizedBook =
+                          currentBook.copyWith(condition: selectedCondition);
 
-              // Action Choice 3: Create public marketplace listing directly
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade50,
-                    shape: BoxShape.circle,
+                      provider.createDirectListing(
+                        book: finalizedBook,
+                        type: selectedType,
+                        price: selectedType == ListingType.exchange
+                            ? null
+                            : priceVal,
+                        exchangePreferences: prefController.text.trim().isNotEmpty
+                            ? prefController.text.trim()
+                            : 'Chętnie wymienię na inną książkę',
+                        city: provider.currentCity,
+                      );
+                      Navigator.pop(ctx);
+                      if (widget.targetMode != ScannerTargetMode.general &&
+                          Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Opublikowano ogłoszenie dla "${finalizedBook.title}" w mieście ${provider.currentCity}!'),
+                        ),
+                      );
+                    },
                   ),
-                  child: const Icon(Icons.campaign, color: Colors.amber),
                 ),
-                title: const Text(
-                  'Wystaw od razu jako ogłoszenie',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-                subtitle: const Text(
-                  'Opublikuj ofertę dla czytelników w Twoim mieście',
-                  style: TextStyle(fontSize: 11),
-                ),
-                onTap: () {
-                  provider.createDirectListing(
-                    book: currentBook,
-                    type: ListingType.both,
-                    price: 25.0,
-                    exchangePreferences:
-                        'Chętnie wymienię na inną ciekawą pozycję',
-                  );
-                  Navigator.pop(ctx);
-                  if (widget.targetMode != ScannerTargetMode.general &&
-                      Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text('Wystawiono ogłoszenie dla "${currentBook.title}"!'),
+                const SizedBox(height: 10),
+
+                // Main Action 2: Dodaj na półkę (bez natychmiastowego wystawiania)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                  );
-                },
-              ),
-            ],
+                    icon: const Icon(Icons.library_books),
+                    label: const Text(
+                      'Dodaj tylko do: Moje książki (Półka)',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    onPressed: () {
+                      final priceVal = double.tryParse(priceController.text.trim());
+                      final finalizedBook =
+                          currentBook.copyWith(condition: selectedCondition);
+
+                      final userBookType = selectedType == ListingType.exchange
+                          ? UserBookType.forExchange
+                          : selectedType == ListingType.sale
+                              ? UserBookType.forSale
+                              : UserBookType.both;
+
+                      provider.addUserBook(
+                        UserBook(
+                          id: 'ub_${DateTime.now().millisecondsSinceEpoch}',
+                          book: finalizedBook,
+                          type: userBookType,
+                          price: selectedType == ListingType.exchange
+                              ? null
+                              : priceVal,
+                          isListed: false,
+                          preferredExchangeGenres:
+                              prefController.text.trim().isNotEmpty
+                                  ? prefController.text.trim()
+                                  : null,
+                        ),
+                      );
+                      Navigator.pop(ctx);
+                      if (widget.targetMode != ScannerTargetMode.general &&
+                          Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Dodano "${finalizedBook.title}" do Twojej półki!'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Main Action 3: Add to wishlist
+                Center(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.favorite_border,
+                        size: 16, color: Colors.pink),
+                    label: const Text(
+                      'Dodaj do: Książki których szukam (Lista życzeń)',
+                      style: TextStyle(
+                          color: Colors.pink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      provider.addWishlistBook(
+                        WishlistBook(
+                          id: 'w_${DateTime.now().millisecondsSinceEpoch}',
+                          isbn: currentBook.isbn,
+                          title: currentBook.title,
+                          author: currentBook.author,
+                          coverUrl: currentBook.coverUrl,
+                          priority: WishlistPriority.high,
+                        ),
+                      );
+                      Navigator.pop(ctx);
+                      if (widget.targetMode != ScannerTargetMode.general &&
+                          Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Dodano "${currentBook.title}" do listy książek, których szukasz!'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

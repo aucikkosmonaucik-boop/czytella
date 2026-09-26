@@ -11,6 +11,7 @@ import 'add_book_dialog.dart';
 import 'isbn_scanner_view.dart';
 import 'auth_dialog.dart';
 import 'user_profile_dialog.dart';
+import '../widgets/book_cover_widget.dart';
 
 class MyShelfView extends StatefulWidget {
   final int initialTabIndex;
@@ -369,179 +370,442 @@ class _MyShelfViewState extends State<MyShelfView>
     );
   }
 
+  Future<void> _openEditUserBookModal(
+      BuildContext context, CzytellaProvider provider, UserBook ub) async {
+    final titleCtrl = TextEditingController(text: ub.book.title);
+    final authorCtrl = TextEditingController(text: ub.book.author);
+    final priceCtrl = TextEditingController(
+      text: ub.price != null ? ub.price!.toStringAsFixed(0) : '20',
+    );
+    final coverCtrl = TextEditingController(text: ub.book.coverUrl ?? '');
+
+    UserBookType selectedType = ub.type;
+    BookCondition selectedCondition = ub.book.condition;
+    bool isListed = ub.isListed;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (mCtx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    const Icon(Icons.edit_note,
+                        size: 24, color: Color(0xFF1E5128)),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Edytuj książkę na półce',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Tytuł książki', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: authorCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Autor', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 14),
+
+                // Typ oferty
+                const Text('Typ oferty:',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Wymiana lub sprzedaż'),
+                      selected: selectedType == UserBookType.both,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) => setSheetState(
+                          () => selectedType = UserBookType.both),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Tylko sprzedaż'),
+                      selected: selectedType == UserBookType.forSale,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) => setSheetState(
+                          () => selectedType = UserBookType.forSale),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Tylko wymiana'),
+                      selected: selectedType == UserBookType.forExchange,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) => setSheetState(
+                          () => selectedType = UserBookType.forExchange),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Cena
+                if (selectedType != UserBookType.forExchange) ...[
+                  TextField(
+                    controller: priceCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Cena w złotych (PLN)',
+                      suffixText: 'zł',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.payments_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    children: ['10', '15', '20', '25', '30', '50'].map((p) {
+                      return ActionChip(
+                        label: Text('$p zł'),
+                        onPressed: () =>
+                            setSheetState(() => priceCtrl.text = p),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // Stan
+                const Text('Stan książki:',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  children: BookCondition.values.map((cond) {
+                    return ChoiceChip(
+                      label: Text(cond.label),
+                      selected: selectedCondition == cond,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedCondition = cond),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+
+                // Wystawione na giełdzie switch
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Wystawione na publicznej giełdzie'),
+                  subtitle: const Text(
+                      'Widoczne dla innych czytelników w Twoim mieście',
+                      style: TextStyle(fontSize: 11)),
+                  value: isListed,
+                  activeColor: const Color(0xFF1E5128),
+                  onChanged: (val) => setSheetState(() => isListed = val),
+                ),
+                const SizedBox(height: 8),
+
+                // Cover URL
+                TextField(
+                  controller: coverCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Link do okładki (URL, opcjonalnie)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.image_outlined),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(mCtx),
+                      child: const Text('Anuluj'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E5128)),
+                      onPressed: () {
+                        final priceVal = double.tryParse(priceCtrl.text.trim());
+                        final updatedBook = ub.book.copyWith(
+                          title: titleCtrl.text.trim().isNotEmpty
+                              ? titleCtrl.text.trim()
+                              : ub.book.title,
+                          author: authorCtrl.text.trim().isNotEmpty
+                              ? authorCtrl.text.trim()
+                              : ub.book.author,
+                          condition: selectedCondition,
+                          coverUrl: coverCtrl.text.trim().isNotEmpty
+                              ? coverCtrl.text.trim()
+                              : ub.book.coverUrl,
+                        );
+
+                        final updatedUserBook = ub.copyWith(
+                          book: updatedBook,
+                          type: selectedType,
+                          price: selectedType == UserBookType.forExchange
+                              ? null
+                              : priceVal,
+                          isListed: isListed,
+                        );
+
+                        provider.updateUserBook(updatedUserBook);
+                        Navigator.pop(mCtx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Zapisano zmiany w książce!')),
+                        );
+                      },
+                      child: const Text('Zapisz zmiany'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildUserBookCard(
       BuildContext context, CzytellaProvider provider, UserBook ub,
       {bool isGrid = false}) {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 1,
+      elevation: 1.5,
       margin: isGrid
           ? EdgeInsets.zero
           : const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: ub.isListed ? Colors.green.shade300 : Colors.grey.shade200,
+          color: ub.isListed ? Colors.green.shade400 : Colors.grey.shade200,
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cover
-            Container(
-              width: 65,
-              height: 95,
-              decoration: BoxDecoration(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openEditUserBookModal(context, provider, ub),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover
+              BookCoverWidget(
+                book: ub.book,
+                width: 68,
+                height: 100,
                 borderRadius: BorderRadius.circular(6),
-                color: Colors.grey.shade200,
               ),
-              clipBehavior: Clip.antiAlias,
-              child: ub.book.coverUrl != null && ub.book.coverUrl!.isNotEmpty
-                  ? Image.network(
-                      ub.book.coverUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.book),
-                    )
-                  : const Icon(Icons.book),
-            ),
-            const SizedBox(width: 14),
+              const SizedBox(width: 14),
 
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: ub.type == UserBookType.forExchange
-                              ? Colors.indigo.shade50
-                              : Colors.teal.shade50,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          ub.type.label,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
                             color: ub.type == UserBookType.forExchange
-                                ? Colors.indigo.shade800
-                                : Colors.teal.shade900,
+                                ? Colors.indigo.shade50
+                                : Colors.teal.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            ub.type.label,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: ub.type == UserBookType.forExchange
+                                  ? Colors.indigo.shade800
+                                  : Colors.teal.shade900,
+                            ),
                           ),
                         ),
-                      ),
-                      if (ub.price != null)
-                        Text(
-                          '${ub.price!.toStringAsFixed(0)} zł',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                        if (ub.price != null && ub.type != UserBookType.forExchange)
+                          Text(
+                            '${ub.price!.toStringAsFixed(0)} zł',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E5128),
+                            ),
                           ),
-                        ),
-                      // Listed badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: ub.isListed
-                              ? Colors.green.shade50
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
+                        // Listed badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
                             color: ub.isListed
-                                ? Colors.green.shade300
-                                : Colors.grey.shade300,
+                                ? Colors.green.shade50
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: ub.isListed
+                                  ? Colors.green.shade300
+                                  : Colors.grey.shade300,
+                            ),
+                          ),
+                          child: Text(
+                            ub.isListed ? '🟢 W ogłoszeniach' : '⚪ Tylko na półce',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: ub.isListed
+                                  ? Colors.green.shade800
+                                  : Colors.grey.shade600,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          ub.isListed ? '🟢 W ogłoszeniach' : '⚪ Tylko na półce',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: ub.isListed
-                                ? Colors.green.shade800
-                                : Colors.grey.shade600,
-                          ),
-                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      ub.book.title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    ub.book.title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    ub.book.author,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
+                    Text(
+                      ub.book.author,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Stan: ${ub.book.condition.label}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Stan: ${ub.book.condition.label}',
+                      style:
+                          TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 8),
 
-                  // Actions row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (!ub.isListed)
-                        FilledButton.tonal(
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    // Actions row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (!ub.isListed)
+                          FilledButton.tonal(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () {
+                              provider.publishUserBookAsListing(
+                                ub,
+                                price: ub.price,
+                                type: ub.type == UserBookType.forExchange
+                                    ? ListingType.exchange
+                                    : ub.type == UserBookType.forSale
+                                        ? ListingType.sale
+                                        : ListingType.both,
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Opublikowano ogłoszenie w Czytelli!'),
+                                ),
+                              );
+                            },
+                            child: const Text('Wystaw ogłoszenie',
+                                style: TextStyle(fontSize: 11)),
                           ),
-                          onPressed: () {
-                            provider.publishUserBookAsListing(
-                              ub,
-                              price: ub.price,
-                              type: ub.type == UserBookType.forExchange
-                                  ? ListingType.exchange
-                                  : ub.type == UserBookType.forSale
-                                      ? ListingType.sale
-                                      : ListingType.both,
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Opublikowano ogłoszenie w Czytelli!'),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          tooltip: 'Edytuj książkę i cenę',
+                          onPressed: () =>
+                              _openEditUserBookModal(context, provider, ub),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              size: 18, color: Colors.red),
+                          tooltip: 'Usuń z półki',
+                          onPressed: () async {
+                            final del = await showDialog<bool>(
+                              context: context,
+                              builder: (dCtx) => AlertDialog(
+                                title: const Text('Usuń książkę z półki?'),
+                                content: Text(
+                                  'Czy na pewno chcesz usunąć "${ub.book.title}" ze swojej półki? Jeśli książka była wystawiona jako ogłoszenie, zostanie także zdjęta z giełdy.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dCtx, false),
+                                    child: const Text('Anuluj'),
+                                  ),
+                                  FilledButton(
+                                    style: FilledButton.styleFrom(
+                                        backgroundColor: Colors.red),
+                                    onPressed: () =>
+                                        Navigator.pop(dCtx, true),
+                                    child: const Text('Usuń'),
+                                  ),
+                                ],
                               ),
                             );
+                            if (del == true) {
+                              provider.removeUserBook(ub.id);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'Usunięto "${ub.book.title}" z półki.'),
+                                  ),
+                                );
+                              }
+                            }
                           },
-                          child: const Text('Wystaw ogłoszenie',
-                              style: TextStyle(fontSize: 11)),
                         ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline,
-                            size: 18, color: Colors.red),
-                        onPressed: () {
-                          provider.removeUserBook(ub.id);
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

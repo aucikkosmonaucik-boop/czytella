@@ -5,6 +5,7 @@ import '../models/book.dart';
 import '../providers/czytella_provider.dart';
 import '../services/distance_service.dart';
 import '../views/listing_detail_screen.dart';
+import 'book_cover_widget.dart';
 
 class ListingCard extends StatelessWidget {
   final Listing listing;
@@ -189,53 +190,11 @@ class ListingCard extends StatelessWidget {
   }
 
   Widget _buildBookCover(Book book) {
-    return Container(
+    return BookCoverWidget(
+      book: book,
       width: 80,
       height: 115,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 4,
-            offset: const Offset(1, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: book.coverUrl != null && book.coverUrl!.isNotEmpty
-          ? Image.network(
-              book.coverUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildFallbackCover(book),
-            )
-          : _buildFallbackCover(book),
-    );
-  }
-
-  Widget _buildFallbackCover(Book book) {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      color: const Color(0xFF2C3E50),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.menu_book, color: Colors.white70, size: 28),
-          const SizedBox(height: 4),
-          Text(
-            book.title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
+      borderRadius: BorderRadius.circular(8),
     );
   }
 

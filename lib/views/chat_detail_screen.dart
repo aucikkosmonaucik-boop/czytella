@@ -126,6 +126,37 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Usuń tę rozmowę',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Usunąć rozmowę?'),
+                  content: const Text(
+                      'Czy na pewno chcesz usunąć tę konwersację z listy wiadomości?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Anuluj'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Usuń'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true && context.mounted) {
+                provider.deleteConversation(liveConv.id);
+                if (!widget.isEmbedded) {
+                  Navigator.pop(context);
+                }
+              }
+            },
+          ),
         ],
       ),
       body: Column(
@@ -186,43 +217,47 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           // Message Bubbles List
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(14),
-              itemCount: liveConv.messages.length,
-              itemBuilder: (context, index) {
-                final message = liveConv.messages[index];
-                return _buildMessageItem(context, provider, message, liveConv);
-              },
-            ),
-          ),
-
-          // Quick Suggested Replies
-          Container(
-            height: 38,
-            margin: const EdgeInsets.only(bottom: 6),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _buildQuickReplyChip(
-                  provider,
-                  'Czy oferta jest aktualna?',
-                ),
-                _buildQuickReplyChip(
-                  provider,
-                  'Gdzie możemy się spotkać na wymianę?',
-                ),
-                _buildQuickReplyChip(
-                  provider,
-                  'Mogę wymienić się jutro po południu.',
-                ),
-                _buildQuickReplyChip(
-                  provider,
-                  'W jakim stanie są strony i okładka?',
-                ),
-              ],
-            ),
+            child: liveConv.messages.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline_rounded,
+                              size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Rozpocznij rozmowę z ${liveConv.otherUserName}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Wpisz wiadomość poniżej, aby bezpośrednio ustalić szczegóły.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(14),
+                    itemCount: liveConv.messages.length,
+                    itemBuilder: (context, index) {
+                      final message = liveConv.messages[index];
+                      return _buildMessageItem(
+                          context, provider, message, liveConv);
+                    },
+                  ),
           ),
 
           // Chat Input Bar
@@ -290,16 +325,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuickReplyChip(CzytellaProvider provider, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: ActionChip(
-        label: Text(text, style: const TextStyle(fontSize: 11)),
-        onPressed: () => _sendMessage(provider, text: text),
       ),
     );
   }
@@ -630,7 +655,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 );
                 _sendMessage(
                   provider,
-                  text: 'Przesyłam propozycję wymiany książek!',
+                  text: '',
                   proposal: proposal,
                 );
               },

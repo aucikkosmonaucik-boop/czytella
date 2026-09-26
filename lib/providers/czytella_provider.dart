@@ -297,7 +297,20 @@ class CzytellaProvider with ChangeNotifier {
     required double? price,
     String? exchangePreferences,
     String? district,
+    String? city,
+    double? latitude,
+    double? longitude,
   }) {
+    final effectiveCity =
+        (city != null && city.trim().isNotEmpty) ? city.trim() : _currentCity;
+    double lat = latitude ?? _userLatitude;
+    double lon = longitude ?? _userLongitude;
+    if (city != null && city.trim().isNotEmpty && latitude == null) {
+      final found = DistanceService.findCityByName(city);
+      lat = found.latitude;
+      lon = found.longitude;
+    }
+
     // Add to user shelf
     final userBook = UserBook(
       id: 'ub_${DateTime.now().millisecondsSinceEpoch}',
@@ -317,14 +330,14 @@ class CzytellaProvider with ChangeNotifier {
     final newListing = Listing(
       id: 'listing_user_${DateTime.now().millisecondsSinceEpoch}',
       book: book,
-      sellerId: 'current_user',
-      sellerName: 'Ja (Moje konto)',
-      sellerRating: 5.0,
-      completedExchangesCount: 3,
-      city: _currentCity,
+      sellerId: _currentUser?.id ?? 'current_user',
+      sellerName: _currentUser?.name ?? 'Ja (Moje konto)',
+      sellerRating: _currentUser?.rating ?? 5.0,
+      completedExchangesCount: _currentUser?.completedExchanges ?? 3,
+      city: effectiveCity,
       district: district ?? 'Moja dzielnica',
-      latitude: _userLatitude,
-      longitude: _userLongitude,
+      latitude: lat,
+      longitude: lon,
       type: type,
       price: price,
       exchangePreferences: exchangePreferences,
@@ -335,10 +348,74 @@ class CzytellaProvider with ChangeNotifier {
     _saveState();
   }
 
+  void updateListing(Listing updatedListing) {
+    final index = _listings.indexWhere((l) => l.id == updatedListing.id);
+    if (index != -1) {
+      _listings[index] = updatedListing;
+      // Also sync matching user shelf book
+      final ubIndex = _userBooks.indexWhere((b) =>
+          b.book.id == updatedListing.book.id ||
+          b.book.title == updatedListing.book.title);
+      if (ubIndex != -1) {
+        _userBooks[ubIndex] = _userBooks[ubIndex].copyWith(
+          book: updatedListing.book,
+          price: updatedListing.price,
+          type: updatedListing.type == ListingType.exchange
+              ? UserBookType.forExchange
+              : updatedListing.type == ListingType.sale
+                  ? UserBookType.forSale
+                  : UserBookType.both,
+          preferredExchangeGenres: updatedListing.exchangePreferences,
+        );
+      }
+      notifyListeners();
+      _saveState();
+    }
+  }
+
+  void updateUserBook(UserBook updatedUserBook) {
+    final index = _userBooks.indexWhere((b) => b.id == updatedUserBook.id);
+    if (index != -1) {
+      _userBooks[index] = updatedUserBook;
+      // Sync matching listing
+      final listingIndex = _listings.indexWhere((l) =>
+          l.book.id == updatedUserBook.book.id ||
+          l.book.title == updatedUserBook.book.title);
+      if (listingIndex != -1) {
+        if (!updatedUserBook.isListed) {
+          _listings.removeAt(listingIndex);
+        } else {
+          _listings[listingIndex] = _listings[listingIndex].copyWith(
+            book: updatedUserBook.book,
+            price: updatedUserBook.price,
+            type: updatedUserBook.type == UserBookType.forExchange
+                ? ListingType.exchange
+                : updatedUserBook.type == UserBookType.forSale
+                    ? ListingType.sale
+                    : ListingType.both,
+            exchangePreferences: updatedUserBook.preferredExchangeGenres,
+          );
+        }
+      }
+      notifyListeners();
+      _saveState();
+    }
+  }
+
   void removeListing(String listingId) {
-    _listings.removeWhere((l) => l.id == listingId);
-    notifyListeners();
-    _saveState();
+    final index = _listings.indexWhere((l) => l.id == listingId);
+    if (index != -1) {
+      final listing = _listings[index];
+      // Mark matching shelf book as unlisted
+      final ubIndex = _userBooks.indexWhere((b) =>
+          b.book.id == listing.book.id || b.book.title == listing.book.title);
+      if (ubIndex != -1) {
+        _userBooks[ubIndex] = _userBooks[ubIndex].copyWith(isListed: false);
+      }
+      _listings.removeAt(index);
+      notifyListeners();
+      _saveState();
+    }
   }
 
   // Wishlist (Tab 2)
@@ -377,16 +454,7 @@ class CzytellaProvider with ChangeNotifier {
       otherUserCity: listing.district != null
           ? '${listing.city}, ${listing.district}'
           : listing.city,
-      messages: [
-        ChatMessage(
-          id: 'welcome_${DateTime.now().millisecondsSinceEpoch}',
-          senderId: 'system',
-          senderName: 'Czytella Bezpieczeństwo',
-          text:
-              '🔒 Rozmawiasz bezpośrednio w Czytelli. Wszystkie szczegóły wymiany lub odbioru ustal tutaj, bez konieczności podawania telefonu czy Facebooka.',
-          isMe: false,
-        ),
-      ],
+      messages: [],
     );
 
     _conversations.insert(0, newConv);
@@ -402,6 +470,12 @@ class CzytellaProvider with ChangeNotifier {
       notifyListeners();
       _saveState();
     }
+  }
+
+  void deleteConversation(String conversationId) {
+    _conversations.removeWhere((c) => c.id == conversationId);
+    notifyListeners();
+    _saveState();
   }
 
   void sendMessage(
@@ -431,9 +505,6 @@ class CzytellaProvider with ChangeNotifier {
 
     notifyListeners();
     _saveState();
-
-    // Simulate smart, safe in-app auto response from the mock seller
-    _simulateSellerReply(conversationId, proposal != null);
   }
 
   void updateProposalStatus(
@@ -463,46 +534,6 @@ class CzytellaProvider with ChangeNotifier {
     _conversations[convIdx] = conv.copyWith(messages: updatedMessages);
     notifyListeners();
     _saveState();
-  }
-
-  void _simulateSellerReply(String conversationId, bool wasProposal) {
-    Future.delayed(const Duration(milliseconds: 1400), () {
-      final convIdx = _conversations.indexWhere((c) => c.id == conversationId);
-      if (convIdx == -1) return;
-
-      final conv = _conversations[convIdx];
-      String replyText;
-
-      if (wasProposal) {
-        replyText =
-            'Dziękuję za propozycję wymiany! Ta książka wygląda super. Z przyjemnością się wymienię. Kiedy pasuje Ci krótkie spotkanie na wymianę?';
-      } else {
-        final replies = [
-          'Dziękuję za wiadomość! Książka jest wciąż dostępna. Możemy umówić się na odbiór w centrum lub w dogodnym punkcie przesiadkowym.',
-          'Cześć! Chętnie się wymienię. Książka jest w bardzo dobrym stanie, bez notatek czy zagiętych rogów.',
-          'Super! Napisz proszę, jakie dni i godziny najbardziej Ci pasują. Bez problemu dogadamy się tutaj na czacie.',
-        ];
-        replyText = (replies..shuffle()).first;
-      }
-
-      final replyMsg = ChatMessage(
-        id: 'reply_${DateTime.now().millisecondsSinceEpoch}',
-        senderId: conv.otherUserId,
-        senderName: conv.otherUserName,
-        text: replyText,
-        isMe: false,
-      );
-
-      final updatedList = List<ChatMessage>.from(conv.messages)..add(replyMsg);
-      _conversations[convIdx] = conv.copyWith(
-        messages: updatedList,
-        updatedAt: DateTime.now(),
-        unreadCount: conv.unreadCount + 1,
-      );
-
-      notifyListeners();
-      _saveState();
-    });
   }
 
   // --- USER AUTH & PROFILE ---

@@ -185,6 +185,34 @@ class IsbnLookupService {
                 (firstBib['domain'] as String?) ??
                 'Literatura';
 
+            // Try to enrich cover from Google Books
+            String? coverUrl;
+            try {
+              final googleUrl = Uri.parse(
+                'https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn',
+              );
+              final gRes = await http.get(googleUrl).timeout(
+                const Duration(seconds: 3),
+              );
+              if (gRes.statusCode == 200) {
+                final gData = json.decode(gRes.body);
+                if ((gData['totalItems'] ?? 0) > 0 &&
+                    gData['items'] != null &&
+                    gData['items'].isNotEmpty) {
+                  final vInfo = gData['items'][0]['volumeInfo'] ?? {};
+                  if (vInfo['imageLinks'] != null) {
+                    coverUrl = vInfo['imageLinks']['thumbnail'] ??
+                        vInfo['imageLinks']['smallThumbnail'];
+                    if (coverUrl != null && coverUrl.startsWith('http://')) {
+                      coverUrl = coverUrl.replaceFirst('http://', 'https://');
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+
+            coverUrl ??= 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false';
+
             return Book(
               id: 'book_${DateTime.now().millisecondsSinceEpoch}',
               isbn: isbn,
@@ -194,7 +222,7 @@ class IsbnLookupService {
               publishYear: publishYear,
               categories: [genre],
               description: 'Książka: $title, autor: $author.',
-              coverUrl: 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg',
+              coverUrl: coverUrl,
               condition: BookCondition.veryGood,
             );
           }
@@ -301,7 +329,7 @@ class IsbnLookupService {
                 bookData['cover']['medium'] ??
                 bookData['cover']['small'];
           }
-          coverUrl ??= 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg';
+          coverUrl ??= 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false';
 
           return Book(
             id: 'book_${DateTime.now().millisecondsSinceEpoch}',
@@ -327,7 +355,7 @@ class IsbnLookupService {
       title: 'Książka ISBN: $isbn',
       author: 'Autor do uzupełnienia',
       description: 'Zeskanowano kod ISBN: $isbn. Możesz edytować tytuł i dane książki.',
-      coverUrl: 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg',
+      coverUrl: 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false',
       condition: BookCondition.veryGood,
     );
   }

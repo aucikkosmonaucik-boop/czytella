@@ -319,8 +319,12 @@ class _ChatListViewState extends State<ChatListView> {
                 ),
               ],
             ),
-            trailing: hasUnread
-                ? Container(
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasUnread)
+                  Container(
+                    margin: const EdgeInsets.only(right: 6),
                     padding: const EdgeInsets.all(6),
                     decoration: const BoxDecoration(
                       color: Color(0xFF1E5128),
@@ -334,8 +338,53 @@ class _ChatListViewState extends State<ChatListView> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  )
-                : const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                  ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade500),
+                  tooltip: 'Opcje',
+                  onSelected: (val) async {
+                    if (val == 'delete') {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Usunąć rozmowę?'),
+                          content: Text('Czy na pewno chcesz usunąć rozmowę z użytkownikiem ${conv.otherUserName}?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Anuluj'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Usuń'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        provider.deleteConversation(conv.id);
+                        if (_selectedConversationId == conv.id) {
+                          setState(() => _selectedConversationId = null);
+                        }
+                      }
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                          SizedBox(width: 8),
+                          Text('Usuń rozmowę', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },

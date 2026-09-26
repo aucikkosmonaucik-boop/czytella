@@ -6,31 +6,404 @@ import '../models/user_book.dart';
 import '../models/chat_message.dart';
 import '../providers/czytella_provider.dart';
 import '../services/distance_service.dart';
+import '../widgets/book_cover_widget.dart';
 import '../widgets/safe_exchange_badge.dart';
 import 'chat_detail_screen.dart';
 
-class ListingDetailScreen extends StatelessWidget {
+class ListingDetailScreen extends StatefulWidget {
   final Listing listing;
 
   const ListingDetailScreen({super.key, required this.listing});
 
   @override
+  State<ListingDetailScreen> createState() => _ListingDetailScreenState();
+}
+
+class _ListingDetailScreenState extends State<ListingDetailScreen> {
+  late Listing _currentListing;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentListing = widget.listing;
+  }
+
+  bool _isMyListing(CzytellaProvider provider) {
+    if (_currentListing.isUserListing) return true;
+    if (_currentListing.sellerId == 'current_user') return true;
+    if (provider.currentUser != null &&
+        (_currentListing.sellerName == provider.currentUser!.name ||
+            _currentListing.sellerId == provider.currentUser!.id)) {
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _confirmDeleteListing(
+      BuildContext context, CzytellaProvider provider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Usunąć ogłoszenie?'),
+          ],
+        ),
+        content: Text(
+          'Czy na pewno chcesz usunąć ofertę "${_currentListing.book.title}" z giełdy Czytelli? Książka pozostanie na Twojej prywatnej półce.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: const Text('Usuń ogłoszenie'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      provider.removeListing(_currentListing.id);
+      Navigator.of(this.context).pop();
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        SnackBar(
+          content: Text('Usunięto ogłoszenie "${_currentListing.book.title}".'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openEditListingDialog(
+      BuildContext context, CzytellaProvider provider) async {
+    final titleCtrl = TextEditingController(text: _currentListing.book.title);
+    final authorCtrl = TextEditingController(text: _currentListing.book.author);
+    final priceCtrl = TextEditingController(
+      text: _currentListing.price != null
+          ? _currentListing.price!.toStringAsFixed(0)
+          : '20',
+    );
+    final prefCtrl = TextEditingController(
+      text: _currentListing.exchangePreferences ?? '',
+    );
+    final descCtrl = TextEditingController(
+      text: _currentListing.book.description,
+    );
+    final coverCtrl = TextEditingController(
+      text: _currentListing.book.coverUrl ?? '',
+    );
+
+    ListingType selectedType = _currentListing.type;
+    BookCondition selectedCondition = _currentListing.book.condition;
+    String selectedCity = _currentListing.city;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (mCtx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    const Icon(Icons.edit_note,
+                        size: 24, color: Color(0xFF1E5128)),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Edytuj ogłoszenie',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Title & Author
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Tytuł książki',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: authorCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Autor',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Typ oferty
+                const Text('Typ oferty:',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Wymiana lub sprzedaż'),
+                      selected: selectedType == ListingType.both,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedType = ListingType.both),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Tylko sprzedaż'),
+                      selected: selectedType == ListingType.sale,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedType = ListingType.sale),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Tylko wymiana'),
+                      selected: selectedType == ListingType.exchange,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) => setSheetState(
+                          () => selectedType = ListingType.exchange),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Price (if sale or both)
+                if (selectedType != ListingType.exchange) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Cena w złotych (PLN)',
+                            suffixText: 'zł',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.payments_outlined),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    children: ['10', '15', '20', '25', '30', '50'].map((p) {
+                      return ActionChip(
+                        label: Text('$p zł'),
+                        onPressed: () => setSheetState(() => priceCtrl.text = p),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // Condition
+                const Text('Stan książki:',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  children: BookCondition.values.map((cond) {
+                    return ChoiceChip(
+                      label: Text(cond.label),
+                      selected: selectedCondition == cond,
+                      selectedColor: const Color(0xFFD6E8D5),
+                      onSelected: (_) =>
+                          setSheetState(() => selectedCondition = cond),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+
+                // City
+                Row(
+                  children: [
+                    const Icon(Icons.location_on,
+                        size: 18, color: Color(0xFF1E5128)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Miasto: $selectedCity',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () async {
+                        final cities = DistanceService.popularCities;
+                        final picked = await showDialog<String>(
+                          context: ctx,
+                          builder: (dCtx) => SimpleDialog(
+                            title: const Text('Wybierz miasto'),
+                            children: cities.map((c) {
+                              return SimpleDialogOption(
+                                onPressed: () => Navigator.pop(dCtx, c.name),
+                                child: Text(c.name),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                        if (picked != null) {
+                          setSheetState(() => selectedCity = picked);
+                        }
+                      },
+                      child: const Text('Zmień miasto'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Cover URL
+                TextField(
+                  controller: coverCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Link do okładki (URL, opcjonalnie)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.image_outlined),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Exchange Preferences
+                TextField(
+                  controller: prefCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Preferencje wymiany (opcjonalnie)',
+                    hintText: 'np. chętnie wymienię na kryminał lub Kinga',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(mCtx),
+                      child: const Text('Anuluj'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E5128),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                      ),
+                      onPressed: () {
+                        final priceVal = double.tryParse(priceCtrl.text.trim());
+                        final updatedBook = _currentListing.book.copyWith(
+                          title: titleCtrl.text.trim().isNotEmpty
+                              ? titleCtrl.text.trim()
+                              : _currentListing.book.title,
+                          author: authorCtrl.text.trim().isNotEmpty
+                              ? authorCtrl.text.trim()
+                              : _currentListing.book.author,
+                          condition: selectedCondition,
+                          coverUrl: coverCtrl.text.trim().isNotEmpty
+                              ? coverCtrl.text.trim()
+                              : _currentListing.book.coverUrl,
+                          description: descCtrl.text.trim(),
+                        );
+
+                        final updatedListing = _currentListing.copyWith(
+                          book: updatedBook,
+                          type: selectedType,
+                          price: selectedType == ListingType.exchange
+                              ? null
+                              : priceVal,
+                          city: selectedCity,
+                          exchangePreferences: prefCtrl.text.trim().isNotEmpty
+                              ? prefCtrl.text.trim()
+                              : null,
+                        );
+
+                        provider.updateListing(updatedListing);
+                        setState(() {
+                          _currentListing = updatedListing;
+                        });
+
+                        Navigator.pop(mCtx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Zaktualizowano ogłoszenie!'),
+                          ),
+                        );
+                      },
+                      child: const Text('Zapisz zmiany'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final provider = context.watch<CzytellaProvider>();
-    final distanceKm = provider.getDistanceFromUser(listing);
+    final distanceKm = provider.getDistanceFromUser(_currentListing);
     final isNearby = distanceKm <= 5.0;
+    final isMine = _isMyListing(provider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Szczegóły oferty'),
         actions: [
+          if (isMine) ...[
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edytuj ogłoszenie',
+              onPressed: () => _openEditListingDialog(context, provider),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              tooltip: 'Usuń ogłoszenie',
+              onPressed: () => _confirmDeleteListing(context, provider),
+            ),
+          ],
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Udostępniono ofertę: ${listing.book.title}'),
+                  content:
+                      Text('Udostępniono ofertę: ${_currentListing.book.title}'),
                 ),
               );
             },
@@ -41,6 +414,49 @@ class ListingDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Banner if user's own listing
+            if (isMine)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                color: Colors.green.shade100,
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_user_outlined,
+                        size: 16, color: Color(0xFF1E5128)),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'To jest Twoje ogłoszenie. Możesz je edytować lub usunąć.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E5128),
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.edit,
+                          size: 13, color: Color(0xFF1E5128)),
+                      label: const Text('Edytuj',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E5128))),
+                      onPressed: () =>
+                          _openEditListingDialog(context, provider),
+                    ),
+                  ],
+                ),
+              ),
+
             // Top Cover & Main Details Banner
             Container(
               color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
@@ -48,30 +464,19 @@ class ListingDetailScreen extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Book Cover
-                  Container(
+                  // Book Cover using BookCoverWidget
+                  BookCoverWidget(
+                    book: _currentListing.book,
                     width: 110,
                     height: 165,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.18),
-                          blurRadius: 10,
-                          offset: const Offset(2, 4),
-                        ),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: listing.book.coverUrl != null &&
-                            listing.book.coverUrl!.isNotEmpty
-                        ? Image.network(
-                            listing.book.coverUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _buildFallbackCover(listing.book),
-                          )
-                        : _buildFallbackCover(listing.book),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 10,
+                        offset: const Offset(2, 4),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 18),
 
@@ -81,12 +486,12 @@ class ListingDetailScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Type Badge
-                        _buildDetailTypeBadge(listing),
+                        _buildDetailTypeBadge(_currentListing),
                         const SizedBox(height: 8),
 
                         // Title
                         Text(
-                          listing.book.title,
+                          _currentListing.book.title,
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             height: 1.2,
@@ -96,7 +501,7 @@ class ListingDetailScreen extends StatelessWidget {
 
                         // Author
                         Text(
-                          listing.book.author,
+                          _currentListing.book.author,
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w600,
@@ -114,25 +519,35 @@ class ListingDetailScreen extends StatelessWidget {
                             border: Border.all(color: Colors.grey.shade300),
                           ),
                           child: Text(
-                            'Stan: ${listing.book.condition.label}',
+                            'Stan: ${_currentListing.book.condition.label}',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
 
-                        // ISBN tag
-                        if (listing.book.isbn.isNotEmpty)
-                          Text(
-                            'ISBN: ${listing.book.isbn}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                              fontFamily: 'monospace',
+                        // Location
+                        Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                size: 16, color: Colors.grey.shade700),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _currentListing.district != null
+                                    ? '${_currentListing.city}, ${_currentListing.district}'
+                                    : _currentListing.city,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade800,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -140,154 +555,70 @@ class ListingDetailScreen extends StatelessWidget {
               ),
             ),
 
+            // Distance Radar Banner (<= 5 km)
+            if (isNearby)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.near_me,
+                          size: 18, color: Colors.green.shade900),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'W Twojej okolicy (${DistanceService.formatDistance(distanceKm)})',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Colors.green.shade900,
+                            ),
+                          ),
+                          const Text(
+                            'Idealna okazja do szybkiej wymiany osobiście bez kosztów wysyłki!',
+                            style:
+                                TextStyle(fontSize: 11, color: Colors.black87),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Content Sections
             Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Safe exchange notice
+                  // Safe exchange badge
                   const SafeExchangeBadge(),
-                  const SizedBox(height: 14),
-
-                  // Location and Distance Card
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isNearby
-                          ? Colors.green.shade50
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isNearby
-                            ? Colors.green.shade300
-                            : Colors.grey.shade300,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isNearby
-                                ? Colors.green.shade600
-                                : Colors.blueGrey,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                listing.district != null
-                                    ? '${listing.city} • ${listing.district}'
-                                    : listing.city,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${DistanceService.formatDistance(distanceKm)}${isNearby ? " (w Twoim promieniu 5 km! 🎯)" : ""}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: isNearby
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: isNearby
-                                      ? Colors.green.shade900
-                                      : Colors.grey.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   const SizedBox(height: 20),
 
-                  // Seller Info Card
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Text(
-                            listing.sellerName.substring(0, 1),
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    listing.sellerName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Icon(Icons.verified,
-                                      size: 16, color: Colors.blue),
-                                ],
-                              ),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  const Icon(Icons.star,
-                                      size: 15, color: Colors.amber),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '${listing.sellerRating.toStringAsFixed(1)} • ${listing.completedExchangesCount} udanych wymian',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Seller Profile Card (or My Account indicator)
+                  _buildSellerCard(context, provider),
                   const SizedBox(height: 20),
 
                   // Exchange Preferences
-                  if (listing.exchangePreferences != null &&
-                      listing.exchangePreferences!.isNotEmpty) ...[
+                  if (_currentListing.exchangePreferences != null &&
+                      _currentListing.exchangePreferences!.isNotEmpty) ...[
                     Text(
                       'Preferencje wymiany:',
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -304,7 +635,7 @@ class ListingDetailScreen extends StatelessWidget {
                         border: Border.all(color: Colors.amber.shade200),
                       ),
                       child: Text(
-                        listing.exchangePreferences!,
+                        _currentListing.exchangePreferences!,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.brown.shade900,
@@ -316,7 +647,7 @@ class ListingDetailScreen extends StatelessWidget {
                   ],
 
                   // Description
-                  if (listing.book.description.isNotEmpty) ...[
+                  if (_currentListing.book.description.isNotEmpty) ...[
                     Text(
                       'O książce:',
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -325,7 +656,7 @@ class ListingDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      listing.book.description,
+                      _currentListing.book.description,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         height: 1.45,
                         color: Colors.grey.shade800,
@@ -335,7 +666,7 @@ class ListingDetailScreen extends StatelessWidget {
                   ],
 
                   // Additional metadata details
-                  _buildBookSpecs(listing.book),
+                  _buildBookSpecs(_currentListing.book),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -358,43 +689,96 @@ class ListingDetailScreen extends StatelessWidget {
           ],
         ),
         child: SafeArea(
-          child: Row(
-            children: [
-              // Propose Exchange Button
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Zaproponuj wymianę'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () => _openExchangeProposalModal(context, provider),
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // Open Internal Chat Button
-              Expanded(
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.chat_outlined),
-                  label: const Text('Napisz na czacie'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () {
-                    final conv =
-                        provider.getOrCreateConversationForListing(listing);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (ctx) => ChatDetailScreen(conversation: conv),
+          child: isMine
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon:
+                            const Icon(Icons.delete_outline, color: Colors.red),
+                        label: const Text(
+                          'Usuń ogłoszenie',
+                          style: TextStyle(
+                              color: Colors.red, fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () =>
+                            _confirmDeleteListing(context, provider),
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text(
+                          'Edytuj ofertę',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E5128),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () =>
+                            _openEditListingDialog(context, provider),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    // Propose Exchange Button
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.swap_horiz),
+                        label: const Text('Zaproponuj wymianę'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () =>
+                            _openExchangeProposalModal(context, provider),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+
+                    // Open Internal Chat Button
+                    Expanded(
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.chat_outlined),
+                        label: const Text('Napisz na czacie'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E5128),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          final conv = provider
+                              .getOrCreateConversationForListing(_currentListing);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (ctx) =>
+                                  ChatDetailScreen(conversation: conv),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -452,27 +836,121 @@ class ListingDetailScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildBookSpecs(Book book) {
+  Widget _buildSellerCard(BuildContext context, CzytellaProvider provider) {
+    final isMine = _isMyListing(provider);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        color: isMine ? Colors.green.shade50 : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isMine ? Colors.green.shade200 : Colors.grey.shade200,
+        ),
       ),
-      child: Column(
+      child: Row(
         children: [
-          if (book.publisher != null)
-            _buildSpecRow('Wydawnictwo', book.publisher!),
-          if (book.publishYear != null)
-            _buildSpecRow('Rok wydania', book.publishYear.toString()),
-          if (book.pageCount != null)
-            _buildSpecRow('Liczba stron', '${book.pageCount}'),
-          if (book.categories.isNotEmpty)
-            _buildSpecRow('Kategorie', book.categories.join(', ')),
-          if (book.isbn.isNotEmpty) _buildSpecRow('Numer ISBN', book.isbn),
+          CircleAvatar(
+            radius: 22,
+            backgroundColor:
+                isMine ? const Color(0xFF1E5128) : Colors.teal.shade100,
+            child: Text(
+              _currentListing.sellerName.isNotEmpty
+                  ? _currentListing.sellerName[0].toUpperCase()
+                  : 'U',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isMine ? Colors.white : Colors.teal.shade800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      isMine ? 'Moje konto' : _currentListing.sellerName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (isMine) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade200,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('Autor',
+                            style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(Icons.star, size: 14, color: Colors.amber),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${_currentListing.sellerRating}',
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '• ${_currentListing.completedExchangesCount} udanych transakcji',
+                      style:
+                          TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBookSpecs(Book book) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Metryka książki:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            children: [
+              _buildSpecRow('Numer ISBN', book.isbn),
+              if (book.publisher != null)
+                _buildSpecRow('Wydawnictwo', book.publisher!),
+              if (book.publishYear != null)
+                _buildSpecRow('Rok wydania', '${book.publishYear}'),
+              if (book.pageCount != null)
+                _buildSpecRow('Liczba stron', '${book.pageCount}'),
+              if (book.categories.isNotEmpty)
+                _buildSpecRow('Kategoria', book.categories.join(', ')),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -482,18 +960,12 @@ class ListingDetailScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          Text(label,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFallbackCover(Book book) {
-    return Container(
-      color: const Color(0xFF2C3E50),
-      child: const Center(
-        child: Icon(Icons.menu_book, color: Colors.white, size: 36),
       ),
     );
   }
@@ -562,7 +1034,7 @@ class ListingDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Wybierz książkę ze swojej półki, którą chcesz zaoferować za "${listing.book.title}":',
+                  'Wybierz książkę ze swojej półki, którą chcesz zaoferować za "${_currentListing.book.title}":',
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
                 ),
                 const SizedBox(height: 14),
@@ -613,12 +1085,16 @@ class ListingDetailScreen extends StatelessWidget {
                   child: FilledButton.icon(
                     icon: const Icon(Icons.send),
                     label: const Text('Wyślij propozycję na czacie'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E5128),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                     onPressed: () {
                       if (selectedUserBook == null) return;
                       Navigator.pop(ctx);
 
-                      final conv =
-                          provider.getOrCreateConversationForListing(listing);
+                      final conv = provider
+                          .getOrCreateConversationForListing(_currentListing);
 
                       final proposal = ExchangeProposal(
                         id: 'prop_${DateTime.now().millisecondsSinceEpoch}',
@@ -626,14 +1102,14 @@ class ListingDetailScreen extends StatelessWidget {
                             '${selectedUserBook!.book.title} (${selectedUserBook!.book.author})',
                         offeredBookCover: selectedUserBook!.book.coverUrl,
                         requestedBookTitle:
-                            '${listing.book.title} (${listing.book.author})',
+                            '${_currentListing.book.title} (${_currentListing.book.author})',
                         proposedLocation: locationController.text.trim(),
                         status: ProposalStatus.pending,
                       );
 
                       provider.sendMessage(
                         conv.id,
-                        'Cześć! Chciał(a)bym zaproponować wymianę mojej książki na Twoją.',
+                        '',
                         proposal: proposal,
                       );
 
