@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/czytella_provider.dart';
+import 'services/api_service.dart';
 import 'views/home_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiService.initialize();
   runApp(const CzytellaApp());
 }
 

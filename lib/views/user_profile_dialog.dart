@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/czytella_provider.dart';
+import '../services/api_service.dart';
 
 class UserProfileDialog extends StatefulWidget {
   final VoidCallback? onNavigateToShelf;
@@ -455,6 +456,29 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           size: 14),
                       onTap: () => setState(() => _isEditing = true),
                     ),
+                    const SizedBox(height: 10),
+                    ListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.cloud_sync_outlined,
+                            color: Colors.indigo.shade800),
+                      ),
+                      title: const Text('Baza danych (Railway)',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: const Text('Sprawdź połączenie z PostgreSQL',
+                          style: TextStyle(fontSize: 12)),
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                          size: 14),
+                      onTap: () => _showDatabaseStatusDialog(context),
+                    ),
                   ],
 
                   const SizedBox(height: 24),
@@ -554,6 +578,137 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
               color: Colors.grey.shade600,
               fontWeight: FontWeight.w500,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDatabaseStatusDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            return FutureBuilder<Map<String, dynamic>>(
+              future: ApiService.checkDatabaseConnection(),
+              builder: (context, snapshot) {
+                final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                final data = snapshot.data;
+                final isConnected = data != null && data['connected'] == true;
+
+                return AlertDialog(
+                  title: Row(
+                    children: [
+                      Icon(
+                        isConnected ? Icons.check_circle : (isLoading ? Icons.hourglass_top : Icons.error_outline),
+                        color: isConnected ? Colors.green : (isLoading ? Colors.blue : Colors.red),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Baza danych Railway', style: TextStyle(fontSize: 16)),
+                    ],
+                  ),
+                  content: isLoading
+                      ? const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text('Sprawdzanie połączenia z serwerem i bazą PostgreSQL...'),
+                          ],
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isConnected ? Colors.green.shade50 : Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isConnected ? Colors.green.shade200 : Colors.red.shade200,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isConnected ? Icons.cloud_done : Icons.cloud_off,
+                                    color: isConnected ? Colors.green.shade800 : Colors.red.shade800,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      isConnected
+                                          ? 'Połączono z bazą PostgreSQL!'
+                                          : 'Brak aktywnego połączenia z bazą',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isConnected ? Colors.green.shade900 : Colors.red.shade900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            if (isConnected) ...[
+                              _buildDbInfoRow('Baza danych:', data['database'] ?? 'railway'),
+                              _buildDbInfoRow('Wersja:', data['postgresVersion'] ?? 'PostgreSQL'),
+                              _buildDbInfoRow('Ogłoszenia w chmurze:', '${data['totalListingsInDb'] ?? 0}'),
+                              _buildDbInfoRow('Czas serwera:', '${data['serverTime'] ?? ''}'),
+                            ] else ...[
+                              Text(
+                                data?['message'] ?? 'Błąd połączenia z serwerem API.',
+                                style: const TextStyle(fontSize: 13, color: Colors.black87),
+                              ),
+                              if (data?['hint'] != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Wskazówka: ${data!['hint']}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontStyle: FontStyle.italic),
+                                ),
+                              ],
+                            ],
+                            const SizedBox(height: 14),
+                            const Divider(),
+                            Text(
+                              'Adres API serwera: ${ApiService.baseUrl.isEmpty ? '(ten sam adres - względny)' : ApiService.baseUrl}',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => setDialogState(() {}),
+                      child: const Text('Odśwież test'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(dialogCtx),
+                      child: const Text('Zamknij'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDbInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+          ),
+          Expanded(
+            child: Text(value, style: TextStyle(fontSize: 12, color: Colors.grey.shade800)),
           ),
         ],
       ),

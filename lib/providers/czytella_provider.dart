@@ -7,6 +7,7 @@ import '../models/wishlist_book.dart';
 import '../models/listing.dart';
 import '../models/chat_message.dart';
 import '../models/user_profile.dart';
+import '../services/api_service.dart';
 import '../services/distance_service.dart';
 import '../services/sample_data.dart';
 
@@ -346,6 +347,7 @@ class CzytellaProvider with ChangeNotifier {
     _listings.insert(0, newListing);
     notifyListeners();
     _saveState();
+    ApiService.createListing(newListing);
   }
 
   void updateListing(Listing updatedListing) {
@@ -370,6 +372,7 @@ class CzytellaProvider with ChangeNotifier {
       }
       notifyListeners();
       _saveState();
+      ApiService.updateListing(updatedListing);
     }
   }
 
@@ -383,9 +386,10 @@ class CzytellaProvider with ChangeNotifier {
           l.book.title == updatedUserBook.book.title);
       if (listingIndex != -1) {
         if (!updatedUserBook.isListed) {
-          _listings.removeAt(listingIndex);
+          final removed = _listings.removeAt(listingIndex);
+          ApiService.deleteListing(removed.id);
         } else {
-          _listings[listingIndex] = _listings[listingIndex].copyWith(
+          final updatedListing = _listings[listingIndex].copyWith(
             book: updatedUserBook.book,
             price: updatedUserBook.price,
             type: updatedUserBook.type == UserBookType.forExchange
@@ -395,6 +399,8 @@ class CzytellaProvider with ChangeNotifier {
                     : ListingType.both,
             exchangePreferences: updatedUserBook.preferredExchangeGenres,
           );
+          _listings[listingIndex] = updatedListing;
+          ApiService.updateListing(updatedListing);
         }
       }
       notifyListeners();
@@ -415,6 +421,7 @@ class CzytellaProvider with ChangeNotifier {
       _listings.removeAt(index);
       notifyListeners();
       _saveState();
+      ApiService.deleteListing(listingId);
     }
   }
 
@@ -709,7 +716,28 @@ class CzytellaProvider with ChangeNotifier {
     } finally {
       _isInitialized = true;
       notifyListeners();
+      _syncWithBackendListings();
     }
+  }
+
+  Future<void> _syncWithBackendListings() async {
+    try {
+      final remoteListings = await ApiService.fetchListings();
+      if (remoteListings.isNotEmpty) {
+        _listings = remoteListings.map((l) {
+          final isMine = _currentUser != null && l.sellerId == _currentUser!.id;
+          return l.copyWith(isUserListing: isMine || l.isUserListing);
+        }).toList();
+        notifyListeners();
+        _saveState();
+      }
+    } catch (e) {
+      debugPrint('Sync with backend listings error: $e');
+    }
+  }
+
+  Future<void> refreshListings() async {
+    await _syncWithBackendListings();
   }
 
   Future<void> _saveState() async {

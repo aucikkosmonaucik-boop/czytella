@@ -15,24 +15,23 @@ RUN flutter pub get
 COPY . .
 RUN flutter build web --release --no-tree-shake-icons
 
-# ── Stage 2: Serve with Nginx ───────────────────────────────────────────────────
-FROM nginx:1.27-alpine
+# ── Stage 2: Serve API & Web with Node.js & PostgreSQL ────────────────────────
+FROM node:20-alpine
 
-# Remove default configs
-RUN rm -rf /etc/nginx/conf.d/*
+WORKDIR /app
 
-# Copy nginx config with port placeholder
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy backend package files and install dependencies
+COPY server/package*.json ./
+RUN npm ci --omit=dev
 
-# Copy compiled Flutter Web assets
-COPY --from=build /app/build/web /usr/share/nginx/html
+# Copy server code
+COPY server/ ./
 
-# Copy entrypoint that handles dynamic $PORT and ports 80/8080
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Copy compiled Flutter Web assets into public/ folder
+COPY --from=build /app/build/web ./public
 
-# Railway sets $PORT at runtime, exposing standard HTTP ports
+# Railway sets $PORT dynamically at runtime
 ENV PORT=8080
-EXPOSE 80 8080
+EXPOSE 8080
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "index.js"]
