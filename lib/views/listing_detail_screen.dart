@@ -690,46 +690,79 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         ),
         child: SafeArea(
           child: isMine
-              ? Row(
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon:
-                            const Icon(Icons.delete_outline, color: Colors.red),
-                        label: const Text(
-                          'Usuń ogłoszenie',
-                          style: TextStyle(
-                              color: Colors.red, fontWeight: FontWeight.bold),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.red),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 15, color: Colors.green.shade900),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'To Twoja oferta. Inni czytelnicy widzą tutaj przycisk „Napisz na czacie” i mogą pisać do Ciebie.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.green.shade900,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
-                        ),
-                        onPressed: () =>
-                            _confirmDeleteListing(context, provider),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.edit_outlined),
-                        label: const Text(
-                          'Edytuj ofertę',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E5128),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
+                            label: const Text(
+                              'Usuń ogłoszenie',
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.red),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () =>
+                                _confirmDeleteListing(context, provider),
                           ),
                         ),
-                        onPressed: () =>
-                            _openEditListingDialog(context, provider),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text(
+                              'Edytuj ofertę',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E5128),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () =>
+                                _openEditListingDialog(context, provider),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 )
