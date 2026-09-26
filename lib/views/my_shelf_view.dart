@@ -119,26 +119,33 @@ class _MyShelfViewState extends State<MyShelfView>
       ),
       floatingActionButton: isDesktop
           ? null
-          : FloatingActionButton.extended(
-              icon: const Icon(Icons.qr_code_scanner),
-              label: Text(
-                _tabController.index == 0
-                    ? 'Zeskanuj na półkę'
-                    : 'Zeskanuj do życzeń',
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (ctx) => IsbnScannerView(
-                      targetMode: _tabController.index == 0
-                          ? ScannerTargetMode.myBooks
-                          : ScannerTargetMode.wishlist,
-                    ),
+          : provider.isAuthenticated
+              ? FloatingActionButton.extended(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: Text(
+                    _tabController.index == 0
+                        ? 'Zeskanuj na półkę'
+                        : 'Zeskanuj do życzeń',
                   ),
-                );
-              },
-            ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (ctx) => IsbnScannerView(
+                          targetMode: _tabController.index == 0
+                              ? ScannerTargetMode.myBooks
+                              : ScannerTargetMode.wishlist,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : FloatingActionButton.extended(
+                  icon: const Icon(Icons.login_rounded),
+                  label: const Text('Zaloguj się'),
+                  backgroundColor: const Color(0xFF1E5128),
+                  onPressed: () => AuthDialog.show(context),
+                ),
     );
   }
 
@@ -248,8 +255,82 @@ class _MyShelfViewState extends State<MyShelfView>
     );
   }
 
+  Widget _buildLoginRequiredScreen(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? theme.colorScheme.surfaceContainer
+                    : Colors.green.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon,
+                  size: 52,
+                  color: isDark
+                      ? theme.colorScheme.primary
+                      : const Color(0xFF1E5128)),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 28),
+            FilledButton.icon(
+              icon: const Icon(Icons.login_rounded),
+              label: const Text('Zaloguj się'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF1E5128),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              onPressed: () => AuthDialog.show(context),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => AuthDialog.show(context),
+              child: const Text('Nie masz konta? Zarejestruj się'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // TAB 1: Moje książki na wymianę/sprzedaż
   Widget _buildMyBooksTab(BuildContext context, CzytellaProvider provider) {
+    // Niezalogowany użytkownik widzi ekran zachęcający do logowania
+    if (!provider.isAuthenticated) {
+      return _buildLoginRequiredScreen(
+        context,
+        icon: Icons.library_books_outlined,
+        title: 'Zaloguj się, aby zobaczyć swoją półkę',
+        subtitle:
+            'Twoja półka jest powiązana z Twoim kontem czytelnika. Zaloguj się, aby dodawać, edytować i usuwać własne książki.',
+      );
+    }
+
     final books = provider.userBooks;
 
     if (books.isEmpty) {
@@ -628,7 +709,9 @@ class _MyShelfViewState extends State<MyShelfView>
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => _openEditUserBookModal(context, provider, ub),
+        onTap: provider.isAuthenticated
+            ? () => _openEditUserBookModal(context, provider, ub)
+            : () => AuthDialog.show(context),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -734,87 +817,88 @@ class _MyShelfViewState extends State<MyShelfView>
                     ),
                     const SizedBox(height: 8),
 
-                    // Actions row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (!ub.isListed)
-                          FilledButton.tonal(
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () {
-                              provider.publishUserBookAsListing(
-                                ub,
-                                price: ub.price,
-                                type: ub.type == UserBookType.forExchange
-                                    ? ListingType.exchange
-                                    : ub.type == UserBookType.forSale
-                                        ? ListingType.sale
-                                        : ListingType.both,
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Opublikowano ogłoszenie w Czytelli!'),
-                                ),
-                              );
-                            },
-                            child: const Text('Wystaw ogłoszenie',
-                                style: TextStyle(fontSize: 11)),
-                          ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          tooltip: 'Edytuj książkę i cenę',
-                          onPressed: () =>
-                              _openEditUserBookModal(context, provider, ub),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              size: 18, color: Colors.red),
-                          tooltip: 'Usuń z półki',
-                          onPressed: () async {
-                            final del = await showDialog<bool>(
-                              context: context,
-                              builder: (dCtx) => AlertDialog(
-                                title: const Text('Usuń książkę z półki?'),
-                                content: Text(
-                                  'Czy na pewno chcesz usunąć "${ub.book.title}" ze swojej półki? Jeśli książka była wystawiona jako ogłoszenie, zostanie także zdjęta z giełdy.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dCtx, false),
-                                    child: const Text('Anuluj'),
-                                  ),
-                                  FilledButton(
-                                    style: FilledButton.styleFrom(
-                                        backgroundColor: Colors.red),
-                                    onPressed: () =>
-                                        Navigator.pop(dCtx, true),
-                                    child: const Text('Usuń'),
-                                  ),
-                                ],
+                    // Actions row — widoczne tylko dla zalogowanego właściciela
+                    if (provider.isAuthenticated)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (!ub.isListed)
+                            FilledButton.tonal(
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                            );
-                            if (del == true) {
-                              provider.removeUserBook(ub.id);
-                              if (context.mounted) {
+                              onPressed: () {
+                                provider.publishUserBookAsListing(
+                                  ub,
+                                  price: ub.price,
+                                  type: ub.type == UserBookType.forExchange
+                                      ? ListingType.exchange
+                                      : ub.type == UserBookType.forSale
+                                          ? ListingType.sale
+                                          : ListingType.both,
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                                  const SnackBar(
                                     content: Text(
-                                        'Usunięto "${ub.book.title}" z półki.'),
+                                        'Opublikowano ogłoszenie w Czytelli!'),
                                   ),
                                 );
+                              },
+                              child: const Text('Wystaw ogłoszenie',
+                                  style: TextStyle(fontSize: 11)),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            tooltip: 'Edytuj książkę i cenę',
+                            onPressed: () =>
+                                _openEditUserBookModal(context, provider, ub),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                size: 18, color: Colors.red),
+                            tooltip: 'Usuń z półki',
+                            onPressed: () async {
+                              final del = await showDialog<bool>(
+                                context: context,
+                                builder: (dCtx) => AlertDialog(
+                                  title: const Text('Usuń książkę z półki?'),
+                                  content: Text(
+                                    'Czy na pewno chcesz usunąć "${ub.book.title}" ze swojej półki? Jeśli książka była wystawiona jako ogłoszenie, zostanie także zdjęta z giełdy.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(dCtx, false),
+                                      child: const Text('Anuluj'),
+                                    ),
+                                    FilledButton(
+                                      style: FilledButton.styleFrom(
+                                          backgroundColor: Colors.red),
+                                      onPressed: () =>
+                                          Navigator.pop(dCtx, true),
+                                      child: const Text('Usuń'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (del == true) {
+                                provider.removeUserBook(ub.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Usunięto "${ub.book.title}" z półki.'),
+                                    ),
+                                  );
+                                }
                               }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                            },
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -825,8 +909,20 @@ class _MyShelfViewState extends State<MyShelfView>
     );
   }
 
+
   // TAB 2: Książki których szukam (Lista życzeń)
   Widget _buildWishlistTab(BuildContext context, CzytellaProvider provider) {
+    // Niezalogowany użytkownik widzi ekran zachęcający do logowania
+    if (!provider.isAuthenticated) {
+      return _buildLoginRequiredScreen(
+        context,
+        icon: Icons.favorite_outline,
+        title: 'Zaloguj się, aby zobaczyć listę życzeń',
+        subtitle:
+            'Lista życzeń jest powiązana z Twoim kontem. Zaloguj się, aby śledzić szukane tytuły i otrzymywać powiadomienia od Radaru Czytelli.',
+      );
+    }
+
     final wishes = provider.wishlist;
 
     if (wishes.isEmpty) {
@@ -1019,11 +1115,13 @@ class _MyShelfViewState extends State<MyShelfView>
                         children: [
                           _buildPriorityBadge(wish.priority),
                           const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                size: 18, color: Colors.grey),
-                            onPressed: () => provider.removeWishlistBook(wish.id),
-                          ),
+                          if (provider.isAuthenticated)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  size: 18, color: Colors.grey),
+                              tooltip: 'Usuń z listy życzeń',
+                              onPressed: () => provider.removeWishlistBook(wish.id),
+                            ),
                         ],
                       ),
                       Text(
