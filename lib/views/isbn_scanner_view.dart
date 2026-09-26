@@ -482,22 +482,37 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (sheetContext, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 16,
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        builder: (sheetContext, setSheetState) {
+          final viewInsets = MediaQuery.of(sheetContext).viewInsets;
+          final viewPadding = MediaQuery.of(sheetContext).viewPadding;
+
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.9,
+            ),
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 16,
+                  bottom: viewInsets.bottom > 0
+                      ? viewInsets.bottom + 16
+                      : viewPadding.bottom + 16,
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 Center(
                   child: Container(
                     width: 40,
@@ -1048,11 +1063,15 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                     },
                   ),
                 ),
+                const SizedBox(height: 48),
               ],
             ),
           ),
         ),
       ),
+    );
+  },
+),
     );
   }
 }

@@ -38,21 +38,33 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
   Widget build(BuildContext context) {
     final provider = context.watch<CzytellaProvider>();
     final theme = Theme.of(context);
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    final viewPadding = MediaQuery.of(context).viewPadding;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        top: 20,
-        left: 20,
-        right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: viewInsets.bottom > 0
+                ? viewInsets.bottom + 16
+                : viewPadding.bottom + 16,
+          ),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Center(
                 child: Container(
                   width: 40,
@@ -243,7 +255,7 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                         author: author,
                         condition: _condition,
                         coverUrl: isbn.isNotEmpty
-                            ? 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg'
+                            ? 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false'
                             : null,
                         description: prefs,
                       );
@@ -267,10 +279,13 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                   },
                 ),
               ),
+              const SizedBox(height: 48),
             ],
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

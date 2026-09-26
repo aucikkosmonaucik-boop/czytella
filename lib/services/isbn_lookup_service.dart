@@ -185,30 +185,14 @@ class IsbnLookupService {
                 (firstBib['domain'] as String?) ??
                 'Literatura';
 
-            // Try to enrich cover from Google Books
+            // Try to enrich cover from Google Books (by ISBN and title/author)
             String? coverUrl;
             try {
-              final googleUrl = Uri.parse(
-                'https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn',
+              coverUrl = await _searchGoogleBooksCover(
+                isbn: isbn,
+                title: title,
+                author: author,
               );
-              final gRes = await http.get(googleUrl).timeout(
-                const Duration(seconds: 3),
-              );
-              if (gRes.statusCode == 200) {
-                final gData = json.decode(gRes.body);
-                if ((gData['totalItems'] ?? 0) > 0 &&
-                    gData['items'] != null &&
-                    gData['items'].isNotEmpty) {
-                  final vInfo = gData['items'][0]['volumeInfo'] ?? {};
-                  if (vInfo['imageLinks'] != null) {
-                    coverUrl = vInfo['imageLinks']['thumbnail'] ??
-                        vInfo['imageLinks']['smallThumbnail'];
-                    if (coverUrl != null && coverUrl.startsWith('http://')) {
-                      coverUrl = coverUrl.replaceFirst('http://', 'https://');
-                    }
-                  }
-                }
-              }
             } catch (_) {}
 
             coverUrl ??= 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false';
@@ -273,7 +257,7 @@ class IsbnLookupService {
             }
           }
 
-          coverUrl ??= 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg';
+          coverUrl ??= 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false';
 
           return Book(
             id: 'book_${DateTime.now().millisecondsSinceEpoch}',
@@ -329,6 +313,7 @@ class IsbnLookupService {
                 bookData['cover']['medium'] ??
                 bookData['cover']['small'];
           }
+          coverUrl ??= await _searchGoogleBooksCover(isbn: isbn, title: title, author: author);
           coverUrl ??= 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false';
 
           return Book(
@@ -358,5 +343,60 @@ class IsbnLookupService {
       coverUrl: 'https://covers.openlibrary.org/b/isbn/$isbn-M.jpg?default=false',
       condition: BookCondition.veryGood,
     );
+  }
+
+  /// Helper to search Google Books for cover thumbnail by ISBN and by title+author
+  static Future<String?> _searchGoogleBooksCover({
+    required String isbn,
+    String? title,
+    String? author,
+  }) async {
+    // 1. Try by ISBN
+    try {
+      final googleUrl = Uri.parse('https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn');
+      final res = await http.get(googleUrl).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if ((data['totalItems'] ?? 0) > 0 && data['items'] != null && data['items'].isNotEmpty) {
+          final vInfo = data['items'][0]['volumeInfo'] ?? {};
+          final imageLinks = vInfo['imageLinks'];
+          if (imageLinks != null) {
+            String? url = imageLinks['thumbnail'] ?? imageLinks['smallThumbnail'];
+            if (url != null) {
+              if (url.startsWith('http://')) url = url.replaceFirst('http://', 'https://');
+              return url;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. If ISBN has no cover in Google Books, try by title and author
+    if (title != null && title.trim().isNotEmpty && !title.contains('ISBN:')) {
+      try {
+        final cleanTitle = Uri.encodeComponent(title.trim());
+        final authorQuery = (author != null && author.trim().isNotEmpty && !author.toLowerCase().contains('nieznan'))
+            ? '+inauthor:${Uri.encodeComponent(author.trim())}'
+            : '';
+        final titleUrl = Uri.parse('https://www.googleapis.com/books/v1/volumes?q=intitle:$cleanTitle$authorQuery');
+        final res = await http.get(titleUrl).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body);
+          if ((data['totalItems'] ?? 0) > 0 && data['items'] != null && data['items'].isNotEmpty) {
+            final vInfo = data['items'][0]['volumeInfo'] ?? {};
+            final imageLinks = vInfo['imageLinks'];
+            if (imageLinks != null) {
+              String? url = imageLinks['thumbnail'] ?? imageLinks['smallThumbnail'];
+              if (url != null) {
+                if (url.startsWith('http://')) url = url.replaceFirst('http://', 'https://');
+                return url;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return null;
   }
 }

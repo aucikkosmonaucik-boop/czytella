@@ -34,6 +34,14 @@ class _ListingsViewState extends State<ListingsView> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CzytellaProvider>().refreshListings();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -490,6 +498,22 @@ class _ListingsViewState extends State<ListingsView> {
                 onPressed: () => LocationFilterSheet.show(context),
               ),
               IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Odśwież ogłoszenia',
+                onPressed: () async {
+                  await provider.refreshListings();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Zaktualizowano ogłoszenia z bazy danych Railway.'),
+                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
+              ),
+              IconButton(
                 icon: provider.isAuthenticated
                     ? CircleAvatar(
                         radius: 13,
@@ -725,6 +749,7 @@ class _ListingsViewState extends State<ListingsView> {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
+            useSafeArea: true,
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
@@ -829,6 +854,7 @@ class _ListingsViewState extends State<ListingsView> {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
+                    useSafeArea: true,
                     shape: const RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(24)),

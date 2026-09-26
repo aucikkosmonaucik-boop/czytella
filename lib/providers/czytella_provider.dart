@@ -290,6 +290,7 @@ class CzytellaProvider with ChangeNotifier {
     _listings.insert(0, newListing);
     notifyListeners();
     _saveState();
+    ApiService.createListing(newListing);
   }
 
   void createDirectListing({
