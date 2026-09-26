@@ -291,6 +291,12 @@ app.delete('/api/listings/:id', async (req, res) => {
   res.json({ success: true, id });
 });
 
+// ── Google Search Console Verification ─────────────────────────────────────────
+app.get('/googleaf4f33ce5f01eea5.html', (req, res) => {
+  res.type('text/html');
+  res.status(200).send('google-site-verification: googleaf4f33ce5f01eea5.html\n');
+});
+
 // ── Static Flutter Web Serving & SPA Fallback ──────────────────────────────────
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath, {
