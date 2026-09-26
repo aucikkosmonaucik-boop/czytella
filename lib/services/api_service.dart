@@ -8,7 +8,7 @@ class ApiService {
   static const String _prefApiUrlKey = 'czytella_backend_api_url';
   
   // Default Railway production URL fallback (or empty for relative path on Web)
-  static String _baseUrl = kIsWeb ? '' : 'https://czytella.up.railway.app';
+  static String _baseUrl = kIsWeb ? '' : 'https://czytella-production.up.railway.app';
 
   static String get baseUrl => _baseUrl;
 
