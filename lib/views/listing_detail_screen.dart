@@ -29,11 +29,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   bool _isMyListing(CzytellaProvider provider) {
-    if (_currentListing.isUserListing) return true;
-    if (_currentListing.sellerId == 'current_user') return true;
-    if (provider.currentUser != null &&
-        (_currentListing.sellerName == provider.currentUser!.name ||
-            _currentListing.sellerId == provider.currentUser!.id)) {
+    if (!provider.isAuthenticated || provider.currentUser == null) {
+      return false;
+    }
+    final user = provider.currentUser!;
+    if (_currentListing.sellerId == user.id ||
+        _currentListing.sellerName == user.name) {
+      return true;
+    }
+    if (_currentListing.isUserListing && _currentListing.sellerId == 'current_user') {
       return true;
     }
     return false;
@@ -41,6 +45,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   Future<void> _confirmDeleteListing(
       BuildContext context, CzytellaProvider provider) async {
+    if (!provider.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Musisz być zalogowany, aby usunąć ogłoszenie.'),
+        ),
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dCtx) => AlertDialog(
@@ -81,6 +93,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   Future<void> _openEditListingDialog(
       BuildContext context, CzytellaProvider provider) async {
+    if (!provider.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Musisz być zalogowany, aby edytować ogłoszenie.'),
+        ),
+      );
+      return;
+    }
     final titleCtrl = TextEditingController(text: _currentListing.book.title);
     final authorCtrl = TextEditingController(text: _currentListing.book.author);
     final priceCtrl = TextEditingController(

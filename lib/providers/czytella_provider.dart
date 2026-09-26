@@ -273,10 +273,10 @@ class CzytellaProvider with ChangeNotifier {
     final newListing = Listing(
       id: 'listing_user_${DateTime.now().millisecondsSinceEpoch}',
       book: userBook.book,
-      sellerId: 'current_user',
-      sellerName: 'Ja (Moje konto)',
-      sellerRating: 5.0,
-      completedExchangesCount: 3,
+      sellerId: _currentUser?.id ?? 'current_user',
+      sellerName: _currentUser?.name ?? 'Ja (Moje konto)',
+      sellerRating: _currentUser?.rating ?? 5.0,
+      completedExchangesCount: _currentUser?.completedExchanges ?? 3,
       city: _currentCity,
       district: district ?? 'Moja lokalizacja',
       latitude: _userLatitude,
@@ -284,7 +284,7 @@ class CzytellaProvider with ChangeNotifier {
       type: type,
       price: price,
       exchangePreferences: exchangePreferences,
-      isUserListing: true,
+      isUserListing: _currentUser != null,
     );
 
     _listings.insert(0, newListing);
@@ -343,7 +343,7 @@ class CzytellaProvider with ChangeNotifier {
       type: type,
       price: price,
       exchangePreferences: exchangePreferences,
-      isUserListing: true,
+      isUserListing: _currentUser != null,
     );
     _listings.insert(0, newListing);
     notifyListeners();
@@ -570,10 +570,21 @@ class CzytellaProvider with ChangeNotifier {
 
     _currentUser = profile;
     _currentCity = profile.city;
+    _recalculateListingOwnership();
     await _saveState();
     notifyListeners();
     ApiService.saveUserProfile(profile);
     return true;
+  }
+
+  void _recalculateListingOwnership() {
+    _listings = _listings.map((l) {
+      final isMine = _currentUser != null &&
+          (l.sellerId == _currentUser!.id ||
+              l.sellerName == _currentUser!.name ||
+              (l.sellerId == 'current_user' && l.isUserListing));
+      return l.copyWith(isUserListing: isMine);
+    }).toList();
   }
 
   Future<bool> login({
@@ -588,6 +599,7 @@ class CzytellaProvider with ChangeNotifier {
     if (remoteProfile != null) {
       _currentUser = remoteProfile;
       _currentCity = remoteProfile.city;
+      _recalculateListingOwnership();
       await _saveState();
       notifyListeners();
       return true;
@@ -603,6 +615,7 @@ class CzytellaProvider with ChangeNotifier {
         if (profile.email.toLowerCase() == cleanEmail) {
           _currentUser = profile;
           _currentCity = profile.city;
+          _recalculateListingOwnership();
           await _saveState();
           notifyListeners();
           ApiService.saveUserProfile(profile);
@@ -627,6 +640,7 @@ class CzytellaProvider with ChangeNotifier {
       completedExchanges: 0,
     );
     _currentUser = newProfile;
+    _recalculateListingOwnership();
     await _saveState();
     notifyListeners();
     ApiService.saveUserProfile(newProfile);
@@ -638,6 +652,8 @@ class CzytellaProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('czytella_user_profile');
     await prefs.setBool('czytella_is_logged_in', false);
+    _recalculateListingOwnership();
+    await _saveState();
     notifyListeners();
   }
 
@@ -717,7 +733,12 @@ class CzytellaProvider with ChangeNotifier {
         final List decoded = json.decode(listingsJson);
         _listings = decoded
             .map((e) => Listing.fromJson(e))
-            .where((l) => l.isUserListing)
+            .map((l) {
+              final isMine = _currentUser != null &&
+                  (l.sellerId == _currentUser!.id ||
+                      l.sellerName == _currentUser!.name);
+              return l.copyWith(isUserListing: isMine);
+            })
             .toList();
       } else {
         prefs.remove('czytella_listings');
@@ -769,8 +790,10 @@ class CzytellaProvider with ChangeNotifier {
       final remoteListings = await ApiService.fetchListings();
       if (remoteListings.isNotEmpty) {
         _listings = remoteListings.map((l) {
-          final isMine = _currentUser != null && l.sellerId == _currentUser!.id;
-          return l.copyWith(isUserListing: isMine || l.isUserListing);
+          final isMine = _currentUser != null &&
+              (l.sellerId == _currentUser!.id ||
+                  l.sellerName == _currentUser!.name);
+          return l.copyWith(isUserListing: isMine);
         }).toList();
         notifyListeners();
         _saveState();

@@ -136,7 +136,7 @@ class Listing {
       'price': price,
       'exchangePreferences': exchangePreferences,
       'createdAt': createdAt.toIso8601String(),
-      'isUserListing': isUserListing,
+      'isUserListing': false,
     };
   }
 
@@ -158,7 +158,7 @@ class Listing {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
-      isUserListing: json['isUserListing'] ?? false,
+      isUserListing: false,
     );
   }
 }

@@ -5,6 +5,9 @@ import 'package:czytella/providers/czytella_provider.dart';
 import 'package:czytella/views/auth_dialog.dart';
 import 'package:czytella/views/user_profile_dialog.dart';
 import 'package:czytella/views/create_listing_dialog.dart';
+import 'package:czytella/models/book.dart';
+import 'package:czytella/models/listing.dart';
+import 'package:czytella/views/listing_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -182,4 +185,89 @@ void main() {
     expect(find.text('Tytuł książki *'), findsOneWidget);
     expect(find.text('Wymagane logowanie'), findsNothing);
   });
+
+  testWidgets('ListingDetailScreen hides edit and delete actions when logged out', (WidgetTester tester) async {
+    final provider = CzytellaProvider();
+
+    // Create a listing that has isUserListing flag or current_user
+    final listing = Listing(
+      id: 'listing_test_1',
+      book: Book(
+        id: 'book_test_1',
+        title: 'Solaris',
+        author: 'Stanisław Lem',
+        isbn: '9788308060000',
+        description: 'Klasyka polskiej SF',
+        condition: BookCondition.veryGood,
+      ),
+      sellerId: 'current_user',
+      sellerName: 'Ja (Moje konto)',
+      city: 'Kraków',
+      latitude: 50.0647,
+      longitude: 19.9450,
+      isUserListing: true,
+    );
+
+    // 1. Unauthenticated state: edit/delete buttons and banner must NOT appear
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: ListingDetailScreen(listing: listing),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Edytuj ofertę'), findsNothing);
+    expect(find.text('Usuń ogłoszenie'), findsNothing);
+    expect(find.byTooltip('Edytuj ogłoszenie'), findsNothing);
+    expect(find.byTooltip('Usuń ogłoszenie'), findsNothing);
+    expect(find.text('To jest Twoje ogłoszenie. Możesz je edytować lub usunąć.'), findsNothing);
+    expect(find.text('Napisz na czacie'), findsOneWidget);
+    expect(find.text('Zaproponuj wymianę'), findsOneWidget);
+
+    // 2. Now user logs in as owner: edit/delete actions should become available
+    await provider.register(
+      name: 'Ja (Moje konto)',
+      email: 'owner@czytella.pl',
+      password: 'password123',
+      city: 'Kraków',
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: ListingDetailScreen(listing: listing),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Edytuj ofertę'), findsOneWidget);
+    expect(find.text('Usuń ogłoszenie'), findsOneWidget);
+    expect(find.byTooltip('Edytuj ogłoszenie'), findsOneWidget);
+    expect(find.byTooltip('Usuń ogłoszenie'), findsOneWidget);
+    expect(find.text('To jest Twoje ogłoszenie. Możesz je edytować lub usunąć.'), findsOneWidget);
+
+    // 3. User logs out: actions must be hidden again
+    await provider.logout();
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: ListingDetailScreen(listing: listing),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Edytuj ofertę'), findsNothing);
+    expect(find.text('Usuń ogłoszenie'), findsNothing);
+    expect(find.byTooltip('Edytuj ogłoszenie'), findsNothing);
+    expect(find.byTooltip('Usuń ogłoszenie'), findsNothing);
+    expect(find.text('To jest Twoje ogłoszenie. Możesz je edytować lub usunąć.'), findsNothing);
+  });
 }
+
