@@ -572,6 +572,7 @@ class CzytellaProvider with ChangeNotifier {
     _currentCity = profile.city;
     await _saveState();
     notifyListeners();
+    ApiService.saveUserProfile(profile);
     return true;
   }
 
@@ -582,6 +583,17 @@ class CzytellaProvider with ChangeNotifier {
     final cleanEmail = email.trim().toLowerCase();
     if (cleanEmail.isEmpty) return false;
 
+    // 1. Try to fetch existing profile from PostgreSQL database first
+    final remoteProfile = await ApiService.fetchUserProfile(cleanEmail);
+    if (remoteProfile != null) {
+      _currentUser = remoteProfile;
+      _currentCity = remoteProfile.city;
+      await _saveState();
+      notifyListeners();
+      return true;
+    }
+
+    // 2. Check local storage
     final prefs = await SharedPreferences.getInstance();
     final savedProfileJson = prefs.getString('czytella_user_profile');
     if (savedProfileJson != null) {
@@ -593,17 +605,19 @@ class CzytellaProvider with ChangeNotifier {
           _currentCity = profile.city;
           await _saveState();
           notifyListeners();
+          ApiService.saveUserProfile(profile);
           return true;
         }
       } catch (_) {}
     }
 
+    // 3. Create fresh profile and persist to PostgreSQL
     final namePart = cleanEmail.split('@').first;
     final formattedName = namePart.isNotEmpty
         ? '${namePart[0].toUpperCase()}${namePart.substring(1)}'
         : 'Czytelnik';
 
-    _currentUser = UserProfile(
+    final newProfile = UserProfile(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       name: formattedName,
       email: cleanEmail,
@@ -612,8 +626,10 @@ class CzytellaProvider with ChangeNotifier {
       rating: 5.0,
       completedExchanges: 0,
     );
+    _currentUser = newProfile;
     await _saveState();
     notifyListeners();
+    ApiService.saveUserProfile(newProfile);
     return true;
   }
 
@@ -631,16 +647,32 @@ class CzytellaProvider with ChangeNotifier {
     String? bio,
   }) async {
     if (_currentUser == null) return;
-    _currentUser = _currentUser!.copyWith(
+    final updatedProfile = _currentUser!.copyWith(
       name: (name != null && name.trim().isNotEmpty) ? name.trim() : null,
       city: (city != null && city.trim().isNotEmpty) ? city.trim() : null,
       bio: bio?.trim(),
     );
+    _currentUser = updatedProfile;
     if (city != null && city.trim().isNotEmpty) {
       _currentCity = city.trim();
     }
+
+    // Keep listings by this user in sync with updated seller name and city
+    _listings = _listings.map((l) {
+      if (l.sellerId == updatedProfile.id || l.isUserListing) {
+        return l.copyWith(
+          sellerName: updatedProfile.name,
+          city: updatedProfile.city,
+        );
+      }
+      return l;
+    }).toList();
+
     await _saveState();
     notifyListeners();
+
+    // Persist permanently in Railway PostgreSQL database
+    ApiService.saveUserProfile(updatedProfile);
   }
 
   // --- PERSISTENCE ---
@@ -666,6 +698,17 @@ class CzytellaProvider with ChangeNotifier {
             _currentUser = null;
           }
         }
+      }
+      if (_currentUser != null) {
+        // Sync profile from PostgreSQL in background
+        ApiService.fetchUserProfile(_currentUser!.email).then((remote) {
+          if (remote != null) {
+            _currentUser = remote;
+            _currentCity = remote.city;
+            _saveState();
+            notifyListeners();
+          }
+        }).catchError((_) {});
       }
 
       // Listings (clean up any legacy cached sample listings)

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/listing.dart';
+import '../models/user_profile.dart';
 
 class ApiService {
   static const String _defaultProductionUrl =
@@ -125,6 +126,41 @@ class ApiService {
       return res.statusCode == 200;
     } catch (e) {
       debugPrint('ApiService.deleteListing error: $e');
+      return false;
+    }
+  }
+  /// Fetch user profile by email from PostgreSQL backend
+  static Future<UserProfile?> fetchUserProfile(String email) async {
+    try {
+      final cleanEmail = Uri.encodeComponent(email.trim().toLowerCase());
+      final uri = _getUri('/api/users/$cleanEmail');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(res.bodyBytes));
+        return UserProfile.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching user profile from API: $e');
+      return null;
+    }
+  }
+
+  /// Save or update user profile permanently in PostgreSQL backend
+  static Future<bool> saveUserProfile(UserProfile profile) async {
+    try {
+      final uri = _getUri('/api/users');
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json; charset=utf-8'},
+            body: json.encode(profile.toJson()),
+          )
+          .timeout(const Duration(seconds: 8));
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (e) {
+      debugPrint('Error saving user profile to API: $e');
       return false;
     }
   }

@@ -54,17 +54,29 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
   }
 
   Future<void> _saveChanges() async {
+    final name = _nameController.text.trim();
+    final city = _cityController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Imię / pseudonim nie może być puste.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final provider = context.read<CzytellaProvider>();
     await provider.updateProfile(
-      name: _nameController.text,
-      city: _cityController.text,
-      bio: _bioController.text,
+      name: name,
+      city: city.isNotEmpty ? city : null,
+      bio: _bioController.text.trim(),
     );
     if (!mounted) return;
     setState(() => _isEditing = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Profil został pomyślnie zaktualizowany!'),
+        content: Text('Profil został pomyślnie zaktualizowany i zapisany w chmurze!'),
         backgroundColor: Color(0xFF1E5128),
         behavior: SnackBarBehavior.floating,
       ),
@@ -453,7 +465,13 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           style: TextStyle(fontSize: 12)),
                       trailing: const Icon(Icons.arrow_forward_ios_rounded,
                           size: 14),
-                      onTap: () => setState(() => _isEditing = true),
+                      onTap: () {
+                        final current = provider.currentUser;
+                        _nameController.text = current?.name ?? '';
+                        _cityController.text = current?.city ?? '';
+                        _bioController.text = current?.bio ?? '';
+                        setState(() => _isEditing = true);
+                      },
                     ),
 
                   ],

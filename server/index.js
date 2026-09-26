@@ -38,6 +38,7 @@ if (databaseUrl) {
 
 // In-memory fallback if no DB connected
 let inMemoryListings = [];
+let inMemoryUsers = {};
 
 async function initTables() {
   if (!pool) return;
@@ -74,6 +75,20 @@ async function initTables() {
       is_me BOOLEAN DEFAULT false,
       proposal_data JSONB,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR(64) PRIMARY KEY,
+      email VARCHAR(180) UNIQUE NOT NULL,
+      name VARCHAR(120) NOT NULL,
+      city VARCHAR(100) NOT NULL DEFAULT 'Warszawa',
+      bio TEXT,
+      avatar_url TEXT,
+      rating NUMERIC(3, 1) DEFAULT 5.0,
+      completed_exchanges INT DEFAULT 0,
+      raw_json JSONB,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `;
   try {
@@ -295,6 +310,102 @@ app.delete('/api/listings/:id', async (req, res) => {
 app.get('/googleaf4f33ce5f01eea5.html', (req, res) => {
   res.type('text/html');
   res.status(200).send('google-site-verification: googleaf4f33ce5f01eea5.html\n');
+});
+
+// ── Users & Profiles API ───────────────────────────────────────────────────────
+
+// GET /api/users/:email
+app.get('/api/users/:email', async (req, res) => {
+  const email = decodeURIComponent(req.params.email).toLowerCase().trim();
+  if (pool) {
+    try {
+      const { rows } = await pool.query('SELECT raw_json FROM users WHERE LOWER(email) = $1 LIMIT 1', [email]);
+      if (rows.length > 0 && rows[0].raw_json) {
+        return res.json(rows[0].raw_json);
+      }
+      return res.status(404).json({ error: 'User not found' });
+    } catch (err) {
+      console.error('Error fetching user from DB:', err.message);
+      return res.status(500).json({ error: 'Database error fetching user' });
+    }
+  }
+  const user = inMemoryUsers[email];
+  if (user) return res.json(user);
+  res.status(404).json({ error: 'User not found' });
+});
+
+// POST /api/users (upsert profile)
+app.post('/api/users', async (req, res) => {
+  const profile = req.body;
+  if (!profile || !profile.email || !profile.name) {
+    return res.status(400).json({ error: 'Missing required user profile fields (email, name)' });
+  }
+
+  const email = profile.email.toLowerCase().trim();
+  const id = profile.id || `user_${Date.now()}`;
+  const name = profile.name.trim();
+  const city = (profile.city || 'Warszawa').trim();
+  const bio = profile.bio ? profile.bio.trim() : null;
+  const avatarUrl = profile.avatarUrl || null;
+  const rating = profile.rating || 5.0;
+  const completedExchanges = profile.completedExchanges || 0;
+
+  const normalizedProfile = {
+    ...profile,
+    id,
+    email,
+    name,
+    city,
+    bio,
+    avatarUrl,
+    rating,
+    completedExchanges,
+  };
+
+  if (pool) {
+    try {
+      const query = `
+        INSERT INTO users (
+          id, email, name, city, bio, avatar_url, rating, completed_exchanges, raw_json, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
+        )
+        ON CONFLICT (email) DO UPDATE SET
+          name = EXCLUDED.name,
+          city = EXCLUDED.city,
+          bio = EXCLUDED.bio,
+          avatar_url = EXCLUDED.avatar_url,
+          rating = EXCLUDED.rating,
+          completed_exchanges = EXCLUDED.completed_exchanges,
+          raw_json = EXCLUDED.raw_json,
+          updated_at = NOW()
+        RETURNING raw_json;
+      `;
+      const values = [
+        id, email, name, city, bio, avatarUrl, rating, completedExchanges,
+        JSON.stringify(normalizedProfile)
+      ];
+      const { rows } = await pool.query(query, values);
+
+      // Sync seller name and city to existing listings of this seller
+      try {
+        await pool.query(
+          'UPDATE listings SET seller_name = $1, city = $2 WHERE seller_id = $3',
+          [name, city, id]
+        );
+      } catch (listErr) {
+        console.warn('Could not update listings seller name:', listErr.message);
+      }
+
+      return res.status(200).json(rows[0].raw_json || normalizedProfile);
+    } catch (err) {
+      console.error('Error saving user profile to DB:', err.message);
+      return res.status(500).json({ error: 'Failed to save profile: ' + err.message });
+    }
+  }
+
+  inMemoryUsers[email] = normalizedProfile;
+  res.status(200).json(normalizedProfile);
 });
 
 // ── Static Flutter Web Serving & SPA Fallback ──────────────────────────────────
