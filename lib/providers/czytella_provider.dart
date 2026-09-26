@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/book.dart';
 import '../models/user_book.dart';
@@ -21,6 +21,32 @@ class CzytellaProvider with ChangeNotifier {
   UserProfile? _currentUser;
   UserProfile? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null;
+
+  // Theme Mode (Light / Dark / System)
+  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode get themeMode => _themeMode;
+
+  void setThemeMode(ThemeMode mode) {
+    if (_themeMode == mode) return;
+    _themeMode = mode;
+    notifyListeners();
+    _saveThemeMode(mode);
+  }
+
+  void toggleTheme() {
+    if (_themeMode == ThemeMode.dark) {
+      setThemeMode(ThemeMode.light);
+    } else {
+      setThemeMode(ThemeMode.dark);
+    }
+  }
+
+  Future<void> _saveThemeMode(ThemeMode mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('czytella_theme_mode', mode.name);
+    } catch (_) {}
+  }
 
   // Data lists
   List<Listing> _listings = [];
@@ -704,6 +730,16 @@ class CzytellaProvider with ChangeNotifier {
       _currentCity = prefs.getString('user_city') ?? 'Warszawa';
       _userLatitude = prefs.getDouble('user_lat') ?? 52.2297;
       _userLongitude = prefs.getDouble('user_lon') ?? 21.0122;
+
+      // Theme Mode
+      final themeStr = prefs.getString('czytella_theme_mode');
+      if (themeStr == 'dark') {
+        _themeMode = ThemeMode.dark;
+      } else if (themeStr == 'light') {
+        _themeMode = ThemeMode.light;
+      } else {
+        _themeMode = ThemeMode.system;
+      }
 
       // User Profile & Authentication
       if (_currentUser == null) {

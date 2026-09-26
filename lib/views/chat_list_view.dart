@@ -164,26 +164,32 @@ class _ChatListViewState extends State<ChatListView> {
   }
 
   Widget _buildGuestBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: isDark
+            ? Colors.green.shade900.withOpacity(0.3)
+            : Colors.green.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade200),
+        border: Border.all(
+            color: isDark ? Colors.green.shade800 : Colors.green.shade200),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lock_outline_rounded,
-              color: Color(0xFF1E5128), size: 20),
+          Icon(Icons.lock_outline_rounded,
+              color: theme.colorScheme.primary, size: 20),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
               'Zaloguj się, aby pisać wiadomości i umawiać wymiany.',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1E5128),
+                color: theme.colorScheme.primary,
               ),
             ),
           ),
@@ -194,11 +200,11 @@ class _ChatListViewState extends State<ChatListView> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             onPressed: () => AuthDialog.show(context),
-            child: const Text(
+            child: Text(
               'Zaloguj',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E5128),
+                color: theme.colorScheme.primary,
               ),
             ),
           ),

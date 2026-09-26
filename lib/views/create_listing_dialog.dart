@@ -315,23 +315,34 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF6F8F5),
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.green.shade900.withOpacity(0.2)
+                      : const Color(0xFFF6F8F5),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.green.shade800
+                          : Colors.green.shade200),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 18, color: Colors.green.shade800),
+                        Icon(Icons.location_on,
+                            size: 18,
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.green.shade400
+                                : Colors.green.shade800),
                         const SizedBox(width: 6),
                         Text(
                           'Lokalizacja ogłoszenia',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green.shade900,
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.green.shade300
+                                : Colors.green.shade900,
                           ),
                         ),
                       ],
@@ -341,13 +352,13 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                     // City input field
                     TextFormField(
                       controller: _cityController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Twoje miasto / Miejscowość *',
                         hintText: 'np. Warszawa, Kraków, Wrocław, Gdańsk',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_city),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.location_city),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: theme.colorScheme.surface,
                       ),
                       validator: (val) =>
                           (val == null || val.trim().isEmpty) ? 'Podaj miasto ogłoszenia' : null,
@@ -377,7 +388,9 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                             child: ChoiceChip(
                               label: Text(city, style: const TextStyle(fontSize: 12)),
                               selected: isSelected,
-                              selectedColor: const Color(0xFFD6E8D5),
+                              selectedColor: theme.brightness == Brightness.dark
+                                  ? theme.colorScheme.primaryContainer
+                                  : const Color(0xFFD6E8D5),
                               onSelected: (_) {
                                 setState(() {
                                   _cityController.text = city;
@@ -401,7 +414,7 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.place_outlined),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: theme.colorScheme.surface,
                       ),
                     ),
                   ],

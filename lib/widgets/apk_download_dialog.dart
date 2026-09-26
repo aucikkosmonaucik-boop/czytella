@@ -121,7 +121,9 @@ class ApkDownloadDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.45,
-                  color: Colors.grey.shade800,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade800,
                 ),
               ),
               const SizedBox(height: 16),
@@ -130,9 +132,14 @@ class ApkDownloadDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF6F8F5),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.surfaceContainer
+                      : const Color(0xFFF6F8F5),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade200),
                 ),
                 child: Column(
                   children: [

@@ -85,6 +85,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final provider = context.watch<CzytellaProvider>();
     final profile = provider.currentUser;
 
@@ -134,7 +135,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: theme.scaffoldBackgroundColor,
             appBar: AppBar(
               backgroundColor: const Color(0xFF1E5128),
               elevation: 0,
@@ -173,13 +174,15 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     children: [
                       CircleAvatar(
                         radius: 36,
-                        backgroundColor: const Color(0xFFE8F5E9),
+                        backgroundColor: theme.brightness == Brightness.dark
+                            ? theme.colorScheme.primaryContainer
+                            : const Color(0xFFE8F5E9),
                         child: Text(
                           profile.initials,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E5128),
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ),
@@ -201,7 +204,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               profile.email,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey.shade600,
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -213,24 +218,32 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.green.shade900.withOpacity(0.3)
+                                        : Colors.green.shade50,
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                        color: Colors.green.shade300),
+                                        color: theme.brightness == Brightness.dark
+                                            ? Colors.green.shade800
+                                            : Colors.green.shade300),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.verified_user_rounded,
                                           size: 13,
-                                          color: Colors.green.shade800),
+                                          color: theme.brightness == Brightness.dark
+                                              ? Colors.green.shade400
+                                              : Colors.green.shade800),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Zweryfikowany czytelnik',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade800,
+                                          color: theme.brightness == Brightness.dark
+                                              ? Colors.green.shade400
+                                              : Colors.green.shade800,
                                         ),
                                       ),
                                     ],
@@ -240,23 +253,31 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
+                                    color: theme.brightness == Brightness.dark
+                                        ? theme.colorScheme.surfaceContainerHighest
+                                        : Colors.grey.shade100,
                                     borderRadius: BorderRadius.circular(6),
-                                    border:
-                                        Border.all(color: Colors.grey.shade300),
+                                    border: Border.all(
+                                        color: theme.brightness == Brightness.dark
+                                            ? Colors.grey.shade700
+                                            : Colors.grey.shade300),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.location_on_outlined,
                                           size: 13,
-                                          color: Colors.grey.shade700),
+                                          color: theme.brightness == Brightness.dark
+                                              ? Colors.grey.shade400
+                                              : Colors.grey.shade700),
                                       const SizedBox(width: 3),
                                       Text(
                                         profile.city,
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: Colors.grey.shade800,
+                                          color: theme.brightness == Brightness.dark
+                                              ? Colors.grey.shade300
+                                              : Colors.grey.shade800,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -277,9 +298,14 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF9FAF8),
+                        color: theme.brightness == Brightness.dark
+                            ? theme.colorScheme.surfaceContainer
+                            : const Color(0xFFF9FAF8),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,12 +331,12 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                   ],
 
                   // Activity Stats Grid
-                  const Text(
+                  Text(
                     'Twoja aktywność',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E5128),
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -318,8 +344,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     children: [
                       Expanded(
                         child: _buildStatCard(
+                          theme: theme,
                           icon: Icons.auto_stories_rounded,
-                          color: const Color(0xFF1E5128),
+                          color: theme.colorScheme.primary,
                           value: provider.userBooks.length.toString(),
                           label: 'Na Twojej półce',
                         ),
@@ -327,6 +354,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildStatCard(
+                          theme: theme,
                           icon: Icons.storefront_rounded,
                           color: Colors.teal.shade700,
                           value: userListingsCount.toString(),
@@ -336,6 +364,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildStatCard(
+                          theme: theme,
                           icon: Icons.favorite_rounded,
                           color: Colors.redAccent.shade700,
                           value: provider.wishlist.length.toString(),
@@ -351,19 +380,24 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF6F8F5),
+                        color: theme.brightness == Brightness.dark
+                            ? theme.colorScheme.surfaceContainer
+                            : const Color(0xFFF6F8F5),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade300),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Edytuj dane profilu',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E5128),
+                              color: theme.colorScheme.primary,
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -406,7 +440,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               const SizedBox(width: 8),
                               FilledButton(
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1E5128),
+                                  backgroundColor: theme.colorScheme.primary,
                                 ),
                                 onPressed: _saveChanges,
                                 child: const Text('Zapisz zmiany'),
@@ -421,16 +455,21 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     ListTile(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.grey.shade200),
+                        side: BorderSide(
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200),
                       ),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.green.shade50,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.green.shade900.withOpacity(0.3)
+                              : Colors.green.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.library_books,
-                            color: Color(0xFF1E5128)),
+                        child: Icon(Icons.library_books,
+                            color: theme.colorScheme.primary),
                       ),
                       title: const Text('Przejdź do Mojej Półki',
                           style: TextStyle(fontWeight: FontWeight.bold)),
@@ -448,16 +487,23 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     ListTile(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.grey.shade200),
+                        side: BorderSide(
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200),
                       ),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.teal.shade50,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.teal.shade900.withOpacity(0.3)
+                              : Colors.teal.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(Icons.edit_outlined,
-                            color: Colors.teal.shade800),
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.teal.shade300
+                                : Colors.teal.shade800),
                       ),
                       title: const Text('Edytuj dane profilu',
                           style: TextStyle(fontWeight: FontWeight.bold)),
@@ -475,6 +521,49 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     ),
 
                   ],
+
+                  const SizedBox(height: 20),
+
+                  // Theme Mode Selector
+                  Row(
+                    children: [
+                      Icon(Icons.palette_outlined,
+                          size: 18, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Motyw aplikacji',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment(
+                        value: ThemeMode.system,
+                        icon: Icon(Icons.brightness_auto_outlined, size: 16),
+                        label: Text('System', style: TextStyle(fontSize: 12)),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.light,
+                        icon: Icon(Icons.light_mode_outlined, size: 16),
+                        label: Text('Jasny', style: TextStyle(fontSize: 12)),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.dark,
+                        icon: Icon(Icons.dark_mode_outlined, size: 16),
+                        label: Text('Ciemny', style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                    selected: {provider.themeMode},
+                    onSelectionChanged: (Set<ThemeMode> newSelection) {
+                      provider.setThemeMode(newSelection.first);
+                    },
+                  ),
 
                   const SizedBox(height: 24),
                   const Divider(),
@@ -540,6 +629,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
   }
 
   Widget _buildStatCard({
+    required ThemeData theme,
     required IconData icon,
     required Color color,
     required String value,
@@ -548,9 +638,14 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAF8),
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainer
+            : const Color(0xFFF9FAF8),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: theme.brightness == Brightness.dark
+                ? Colors.grey.shade800
+                : Colors.grey.shade200),
       ),
       child: Column(
         children: [
@@ -570,7 +665,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 10,
-              color: Colors.grey.shade600,
+              color: theme.brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : Colors.grey.shade600,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -578,5 +675,4 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
       ),
     );
   }
-
 }

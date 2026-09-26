@@ -144,20 +144,26 @@ class _MyShelfViewState extends State<MyShelfView>
 
   Widget _buildAccountStatusBanner(
       BuildContext context, CzytellaProvider provider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     if (provider.isAuthenticated) {
       return Container(
         margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.green.shade50.withOpacity(0.7),
+          color: isDark
+              ? Colors.green.shade900.withOpacity(0.3)
+              : Colors.green.shade50.withOpacity(0.7),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.shade200),
+          border: Border.all(
+              color: isDark ? Colors.green.shade800 : Colors.green.shade200),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 14,
-              backgroundColor: const Color(0xFF1E5128),
+              backgroundColor: theme.colorScheme.primary,
               child: Text(
                 provider.currentUser!.initials,
                 style: const TextStyle(
@@ -170,12 +176,12 @@ class _MyShelfViewState extends State<MyShelfView>
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Zalogowano:  ()',
+                'Zalogowano: ${provider.currentUser!.name} (${provider.currentUser!.city})',
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.green.shade900,
+                  color: isDark ? Colors.green.shade300 : Colors.green.shade900,
                 ),
               ),
             ),
@@ -185,14 +191,14 @@ class _MyShelfViewState extends State<MyShelfView>
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              icon: const Icon(Icons.settings_outlined,
-                  size: 14, color: Color(0xFF1E5128)),
-              label: const Text(
+              icon: Icon(Icons.settings_outlined,
+                  size: 14, color: theme.colorScheme.primary),
+              label: Text(
                 'Panel',
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E5128)),
+                    color: theme.colorScheme.primary),
               ),
               onPressed: () => UserProfileDialog.show(context),
             ),
@@ -205,18 +211,26 @@ class _MyShelfViewState extends State<MyShelfView>
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBFBFA),
+        color: isDark
+            ? theme.colorScheme.surfaceContainer
+            : const Color(0xFFFBFBFA),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300),
       ),
       child: Row(
         children: [
-          Icon(Icons.cloud_sync_outlined, color: Colors.grey.shade700, size: 20),
+          Icon(Icons.cloud_sync_outlined,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Zaloguj się, aby zsynchronizować półkę między urządzeniami.',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+              ),
             ),
           ),
           FilledButton.tonal(

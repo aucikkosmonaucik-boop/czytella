@@ -153,9 +153,9 @@ class _AuthDialogState extends State<AuthDialog>
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: theme.scaffoldBackgroundColor,
             appBar: AppBar(
-              backgroundColor: const Color(0xFFF9FAF8),
+              backgroundColor: theme.colorScheme.surface,
               elevation: 0,
               automaticallyImplyLeading: false,
               title: Row(
@@ -166,20 +166,20 @@ class _AuthDialogState extends State<AuthDialog>
                       'assets/images/logo.png',
                       width: 26,
                       height: 26,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, __, ___) => Icon(
                         Icons.menu_book_rounded,
-                        color: Color(0xFF1E5128),
+                        color: theme.colorScheme.primary,
                         size: 24,
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
+                  Text(
                     'Konto w Czytella',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF1E5128),
+                      color: theme.colorScheme.primary,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -194,10 +194,12 @@ class _AuthDialogState extends State<AuthDialog>
               ],
               bottom: TabBar(
                 controller: _tabController,
-                indicatorColor: const Color(0xFF1E5128),
+                indicatorColor: theme.colorScheme.primary,
                 indicatorWeight: 3,
-                labelColor: const Color(0xFF1E5128),
-                unselectedLabelColor: Colors.grey.shade600,
+                labelColor: theme.colorScheme.primary,
+                unselectedLabelColor: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                 tabs: const [
                   Tab(
@@ -232,18 +234,23 @@ class _AuthDialogState extends State<AuthDialog>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Zaloguj się do swojego profilu',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E5128),
+                color: theme.colorScheme.primary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Zarządzaj swoimi książkami na półce, wystawiaj ogłoszenia i rozmawiaj z sąsiadami.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -301,7 +308,7 @@ class _AuthDialogState extends State<AuthDialog>
             // Submit Button
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF1E5128),
+                backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -345,18 +352,23 @@ class _AuthDialogState extends State<AuthDialog>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Utwórz darmowe konto',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1E5128),
+                color: theme.colorScheme.primary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Dołącz do lokalnej społeczności czytelników. Wymieniaj i kupuj książki w okolicy!',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -470,7 +482,7 @@ class _AuthDialogState extends State<AuthDialog>
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: _acceptTerms,
-              activeColor: const Color(0xFF1E5128),
+              activeColor: theme.colorScheme.primary,
               controlAffinity: ListTileControlAffinity.leading,
               title: const Text(
                 'Akceptuję zasady bezpiecznej i kulturalnej wymiany książek w Czytelli.',
@@ -483,7 +495,7 @@ class _AuthDialogState extends State<AuthDialog>
             // Submit Button
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF1E5128),
+                backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

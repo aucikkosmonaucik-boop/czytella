@@ -80,7 +80,7 @@ class _ListingsViewState extends State<ListingsView> {
     final int crossAxisCount = screenWidth >= 1150 ? 3 : 2;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F4F0),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           // Banner for Mobile APK release
@@ -496,6 +496,20 @@ class _ListingsViewState extends State<ListingsView> {
                 ),
                 tooltip: 'Filtry i lokalizacja',
                 onPressed: () => LocationFilterSheet.show(context),
+              ),
+              IconButton(
+                icon: Icon(
+                  provider.themeMode == ThemeMode.dark
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_outlined,
+                  color: provider.themeMode == ThemeMode.dark
+                      ? Colors.amber
+                      : null,
+                ),
+                tooltip: provider.themeMode == ThemeMode.dark
+                    ? 'Motyw jasny'
+                    : 'Motyw ciemny',
+                onPressed: () => provider.toggleTheme(),
               ),
               IconButton(
                 icon: const Icon(Icons.refresh_rounded),

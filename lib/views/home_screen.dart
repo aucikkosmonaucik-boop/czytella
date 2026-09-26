@@ -46,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final unreadChats = provider.totalUnreadChats;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 800;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: isDesktop
@@ -53,9 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
               preferredSize: const Size.fromHeight(66),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF7),
+                  color: theme.colorScheme.surface,
                   border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    bottom: BorderSide(color: theme.dividerColor, width: 1.5),
                   ),
                 ),
                 child: SafeArea(
@@ -257,7 +258,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                       },
                                     ),
 
-                                    const SizedBox(width: 10),
+                                    const SizedBox(width: 6),
+
+                                    // Dark / Light Theme Toggle Button
+                                    IconButton(
+                                      icon: Icon(
+                                        provider.themeMode == ThemeMode.dark
+                                            ? Icons.light_mode_rounded
+                                            : Icons.dark_mode_outlined,
+                                        size: 20,
+                                        color: provider.themeMode == ThemeMode.dark
+                                            ? Colors.amber
+                                            : const Color(0xFF1E5128),
+                                      ),
+                                      tooltip: provider.themeMode == ThemeMode.dark
+                                          ? 'Przełącz na motyw jasny'
+                                          : 'Przełącz na motyw ciemny',
+                                      onPressed: () => provider.toggleTheme(),
+                                    ),
+
+                                    const SizedBox(width: 6),
 
                                     // User Account Button
                                     if (provider.isAuthenticated)

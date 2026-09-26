@@ -170,8 +170,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.amber.shade50,
-              border: Border(bottom: BorderSide(color: Colors.amber.shade200)),
+              color: theme.brightness == Brightness.dark
+                  ? Colors.amber.shade900.withOpacity(0.25)
+                  : Colors.amber.shade50,
+              border: Border(
+                bottom: BorderSide(
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.amber.shade900
+                      : Colors.amber.shade200,
+                ),
+              ),
             ),
             child: Row(
               children: [
@@ -201,7 +209,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.brown.shade900,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.amber.shade200
+                              : Colors.brown.shade900,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -210,7 +220,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         '🔒 Bezpieczna wymiana — nie podawaj numeru telefonu ani FB',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.brown.shade700,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.amber.shade300
+                              : Colors.brown.shade700,
                         ),
                       ),
                     ],
@@ -287,11 +299,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.green.shade50,
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.green.shade900.withOpacity(0.3)
+                                : Colors.green.shade50,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.lock_outline_rounded,
-                              size: 18, color: Color(0xFF1E5128)),
+                          child: Icon(Icons.lock_outline_rounded,
+                              size: 18, color: theme.colorScheme.primary),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
@@ -306,7 +320,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         const SizedBox(width: 8),
                         FilledButton(
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E5128),
+                            backgroundColor: theme.colorScheme.primary,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 10),
                           ),
@@ -453,7 +467,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     decoration: BoxDecoration(
                       color: isMe
                           ? theme.colorScheme.primary
-                          : Colors.grey.shade200,
+                          : (theme.brightness == Brightness.dark
+                              ? theme.colorScheme.surfaceContainerHighest
+                              : Colors.grey.shade200),
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
                         topRight: const Radius.circular(16),
@@ -464,7 +480,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     child: Text(
                       msg.text,
                       style: TextStyle(
-                        color: isMe ? Colors.white : Colors.black87,
+                        color: isMe
+                            ? Colors.white
+                            : (theme.brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87),
                         fontSize: 13.5,
                       ),
                     ),
@@ -491,6 +511,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     ChatConversation liveConv,
     bool isMe,
   ) {
+    final theme = Theme.of(context);
     Color statusColor;
     switch (prop.status) {
       case ProposalStatus.accepted:
@@ -509,7 +530,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: statusColor, width: 1.5),
         boxShadow: [
