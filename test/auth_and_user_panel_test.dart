@@ -8,6 +8,7 @@ import 'package:czytella/views/create_listing_dialog.dart';
 import 'package:czytella/models/book.dart';
 import 'package:czytella/models/listing.dart';
 import 'package:czytella/views/listing_detail_screen.dart';
+import 'package:czytella/views/chat_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -269,5 +270,74 @@ void main() {
     expect(find.byTooltip('Usuń ogłoszenie'), findsNothing);
     expect(find.text('To jest Twoje ogłoszenie. Możesz je edytować lub usunąć.'), findsNothing);
   });
+
+  testWidgets('Chat requires authentication to send messages', (WidgetTester tester) async {
+    final provider = CzytellaProvider();
+    await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 100)));
+    await tester.pump();
+
+    final testListing = Listing(
+      id: 'listing_chat_test',
+      book: const Book(
+        id: 'book_1',
+        title: 'Czysty Kod',
+        author: 'Robert C. Martin',
+        isbn: '9788328302341',
+      ),
+      sellerId: 'other_user',
+      sellerName: 'Anna Kowalska',
+      city: 'Warszawa',
+      latitude: 52.2297,
+      longitude: 21.0122,
+    );
+    final conv = provider.getOrCreateConversationForListing(testListing);
+    final initialMessageCount = conv.messages.length;
+
+    // 1. Unauthenticated test: sendMessage must be rejected
+    provider.sendMessage(conv.id, 'Testowa wiadomość od gościa');
+    expect(conv.messages.length, initialMessageCount);
+
+    // 2. ChatDetailScreen in unauthenticated state shows login prompt, hides text field
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: ChatDetailScreen(conversation: conv),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Zaloguj się, aby pisać wiadomości i umawiać wymiany.'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+
+    // 3. Authenticate user: text field appears and messages can be sent
+    await provider.register(
+      name: 'Marek Czytający',
+      email: 'marek@czytella.pl',
+      password: 'password123',
+      city: 'Gdańsk',
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: ChatDetailScreen(conversation: conv),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Zaloguj się, aby pisać wiadomości i umawiać wymiany.'), findsNothing);
+    expect(find.byType(TextField), findsOneWidget);
+
+    provider.sendMessage(conv.id, 'Cześć! Chętnie wymienię tę książkę.');
+    final updatedConv = provider.conversations.firstWhere((c) => c.id == conv.id);
+    expect(updatedConv.messages.length, initialMessageCount + 1);
+    expect(updatedConv.messages.last.text, 'Cześć! Chętnie wymienię tę książkę.');
+    expect(updatedConv.messages.last.senderName, 'Marek Czytający');
+  });
 }
+
 

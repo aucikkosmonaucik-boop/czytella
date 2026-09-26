@@ -9,6 +9,7 @@ import '../services/distance_service.dart';
 import '../widgets/book_cover_widget.dart';
 import '../widgets/safe_exchange_badge.dart';
 import 'chat_detail_screen.dart';
+import 'auth_dialog.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final Listing listing;
@@ -799,8 +800,19 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: () =>
-                            _openExchangeProposalModal(context, provider),
+                        onPressed: () {
+                          if (!provider.isAuthenticated) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Zaloguj się, aby zaproponować wymianę książek.'),
+                              ),
+                            );
+                            AuthDialog.show(context);
+                            return;
+                          }
+                          _openExchangeProposalModal(context, provider);
+                        },
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -818,6 +830,16 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           ),
                         ),
                         onPressed: () {
+                          if (!provider.isAuthenticated) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Zaloguj się, aby pisać na czacie z właścicielem oferty.'),
+                              ),
+                            );
+                            AuthDialog.show(context);
+                            return;
+                          }
                           final conv = provider
                               .getOrCreateConversationForListing(_currentListing);
                           Navigator.push(
@@ -1143,6 +1165,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     onPressed: () {
+                      if (!provider.isAuthenticated) {
+                        AuthDialog.show(context);
+                        return;
+                      }
                       if (selectedUserBook == null) return;
                       Navigator.pop(ctx);
 

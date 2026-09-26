@@ -491,13 +491,15 @@ class CzytellaProvider with ChangeNotifier {
     String text, {
     ExchangeProposal? proposal,
   }) {
+    if (!isAuthenticated || _currentUser == null) return;
+
     final idx = _conversations.indexWhere((c) => c.id == conversationId);
     if (idx == -1) return;
 
     final userMessage = ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-      senderId: 'current_user',
-      senderName: 'Ja',
+      senderId: _currentUser!.id,
+      senderName: _currentUser!.name,
       text: text,
       isMe: true,
       proposal: proposal,
@@ -520,6 +522,7 @@ class CzytellaProvider with ChangeNotifier {
     String proposalId,
     ProposalStatus newStatus,
   ) {
+    if (!isAuthenticated || _currentUser == null) return;
     final convIdx = _conversations.indexWhere((c) => c.id == conversationId);
     if (convIdx == -1) return;
 

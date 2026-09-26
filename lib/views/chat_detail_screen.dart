@@ -5,6 +5,7 @@ import '../models/chat_message.dart';
 import '../models/user_book.dart';
 import '../providers/czytella_provider.dart';
 import '../widgets/safe_exchange_badge.dart';
+import 'auth_dialog.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final ChatConversation conversation;
@@ -44,6 +45,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _sendMessage(CzytellaProvider provider, {String? text, ExchangeProposal? proposal}) {
+    if (!provider.isAuthenticated) {
+      AuthDialog.show(context);
+      return;
+    }
     final messageText = (text ?? _textController.text).trim();
     if (messageText.isEmpty && proposal == null) return;
 
@@ -260,9 +265,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   ),
           ),
 
-          // Chat Input Bar
+          // Chat Input Bar (or Login Banner if guest)
           Container(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 14),
+            padding: provider.isAuthenticated
+                ? const EdgeInsets.fromLTRB(10, 8, 10, 14)
+                : const EdgeInsets.fromLTRB(16, 12, 16, 16),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               boxShadow: [
@@ -274,54 +281,92 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ],
             ),
             child: SafeArea(
-              child: Row(
-                children: [
-                  // Propose exchange icon button
-                  IconButton(
-                    icon: const Icon(Icons.swap_horiz, color: Colors.teal),
-                    tooltip: 'Zaproponuj wymianę książek',
-                    onPressed: () => _openProposalDialog(context, provider),
-                  ),
-                  const SizedBox(width: 4),
+              child: !provider.isAuthenticated
+                  ? Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.lock_outline_rounded,
+                              size: 18, color: Color(0xFF1E5128)),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Zaloguj się, aby pisać wiadomości i umawiać wymiany.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E5128),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                          ),
+                          onPressed: () => AuthDialog.show(context),
+                          child: const Text('Zaloguj się'),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        // Propose exchange icon button
+                        IconButton(
+                          icon:
+                              const Icon(Icons.swap_horiz, color: Colors.teal),
+                          tooltip: 'Zaproponuj wymianę książek',
+                          onPressed: () =>
+                              _openProposalDialog(context, provider),
+                        ),
+                        const SizedBox(width: 4),
 
-                  // Message field
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        hintText: 'Napisz wiadomość (bezpiecznie w Czytelli)...',
-                        hintStyle: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade500,
+                        // Message field
+                        Expanded(
+                          child: TextField(
+                            controller: _textController,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              hintText:
+                                  'Napisz wiadomość (bezpiecznie w Czytelli)...',
+                              hintStyle: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade500,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              filled: true,
+                              fillColor: theme.colorScheme.surfaceVariant
+                                  .withOpacity(0.5),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            onSubmitted: (_) => _sendMessage(provider),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        filled: true,
-                        fillColor:
-                            theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(provider),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
+                        const SizedBox(width: 6),
 
-                  // Send button
-                  CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, size: 18, color: Colors.white),
-                      onPressed: () => _sendMessage(provider),
+                        // Send button
+                        CircleAvatar(
+                          backgroundColor: theme.colorScheme.primary,
+                          child: IconButton(
+                            icon: const Icon(Icons.send,
+                                size: 18, color: Colors.white),
+                            onPressed: () => _sendMessage(provider),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -546,6 +591,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       minimumSize: Size.zero,
                     ),
                     onPressed: () {
+                      if (!provider.isAuthenticated) {
+                        AuthDialog.show(context);
+                        return;
+                      }
                       provider.updateProposalStatus(
                         liveConv.id,
                         prop.id,
@@ -568,6 +617,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       minimumSize: Size.zero,
                     ),
                     onPressed: () {
+                      if (!provider.isAuthenticated) {
+                        AuthDialog.show(context);
+                        return;
+                      }
                       provider.updateProposalStatus(
                         liveConv.id,
                         prop.id,
@@ -587,6 +640,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _openProposalDialog(BuildContext context, CzytellaProvider provider) {
+    if (!provider.isAuthenticated) {
+      AuthDialog.show(context);
+      return;
+    }
     final userBooks = provider.userBooks;
 
     if (userBooks.isEmpty) {

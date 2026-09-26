@@ -5,6 +5,7 @@ import '../models/chat_message.dart';
 import '../providers/czytella_provider.dart';
 import '../widgets/safe_exchange_badge.dart';
 import 'chat_detail_screen.dart';
+import 'auth_dialog.dart';
 
 class ChatListView extends StatefulWidget {
   const ChatListView({super.key});
@@ -69,6 +70,8 @@ class _ChatListViewState extends State<ChatListView> {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: SafeExchangeBadge(),
                   ),
+                  if (!provider.isAuthenticated)
+                    _buildGuestBanner(context),
                   const SizedBox(height: 8),
                   Expanded(
                     child: _buildConversationList(
@@ -144,6 +147,8 @@ class _ChatListViewState extends State<ChatListView> {
             padding: EdgeInsets.symmetric(horizontal: 14),
             child: SafeExchangeBadge(),
           ),
+          if (!provider.isAuthenticated)
+            _buildGuestBanner(context),
           Expanded(
             child: _buildConversationList(
               context,
@@ -151,6 +156,50 @@ class _ChatListViewState extends State<ChatListView> {
               provider,
               conversations,
               isDesktop: false,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuestBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline_rounded,
+              color: Color(0xFF1E5128), size: 20),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Zaloguj się, aby pisać wiadomości i umawiać wymiany.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E5128),
+              ),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => AuthDialog.show(context),
+            child: const Text(
+              'Zaloguj',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E5128),
+              ),
             ),
           ),
         ],
