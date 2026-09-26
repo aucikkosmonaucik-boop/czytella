@@ -19,10 +19,25 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
   final _isbnController = TextEditingController();
   final _priceController = TextEditingController();
   final _preferencesController = TextEditingController();
+  final _cityController = TextEditingController();
   final _districtController = TextEditingController();
+  bool _cityInitialized = false;
 
   ListingType _type = ListingType.both;
   BookCondition _condition = BookCondition.veryGood;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_cityInitialized) {
+      final provider = context.read<CzytellaProvider>();
+      _cityController.text =
+          provider.currentUser?.city.trim().isNotEmpty == true
+              ? provider.currentUser!.city
+              : provider.currentCity;
+      _cityInitialized = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -31,6 +46,7 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
     _isbnController.dispose();
     _priceController.dispose();
     _preferencesController.dispose();
+    _cityController.dispose();
     _districtController.dispose();
     super.dispose();
   }
@@ -295,14 +311,100 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
               ),
               const SizedBox(height: 12),
 
-              // District / Neighborhood
-              TextFormField(
-                controller: _districtController,
-                decoration: InputDecoration(
-                  labelText: 'Dzielnica / Okolica (${provider.currentCity})',
-                  hintText: 'np. Mokotów, Śródmieście, Stare Miasto',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.place_outlined),
+              // ── Location Section ──
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6F8F5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 18, color: Colors.green.shade800),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Lokalizacja ogłoszenia',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // City input field
+                    TextFormField(
+                      controller: _cityController,
+                      decoration: const InputDecoration(
+                        labelText: 'Twoje miasto / Miejscowość *',
+                        hintText: 'np. Warszawa, Kraków, Wrocław, Gdańsk',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.location_city),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (val) =>
+                          (val == null || val.trim().isEmpty) ? 'Podaj miasto ogłoszenia' : null,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Quick City selection chips
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          'Warszawa',
+                          'Kraków',
+                          'Wrocław',
+                          'Poznań',
+                          'Gdańsk',
+                          'Łódź',
+                          'Katowice',
+                          'Lublin',
+                          'Szczecin',
+                        ].map((city) {
+                          final isSelected =
+                              _cityController.text.trim().toLowerCase() == city.toLowerCase();
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ChoiceChip(
+                              label: Text(city, style: const TextStyle(fontSize: 12)),
+                              selected: isSelected,
+                              selectedColor: const Color(0xFFD6E8D5),
+                              onSelected: (_) {
+                                setState(() {
+                                  _cityController.text = city;
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // District input field
+                    TextFormField(
+                      controller: _districtController,
+                      decoration: InputDecoration(
+                        labelText: _cityController.text.trim().isNotEmpty
+                            ? 'Dzielnica / Okolica (${_cityController.text.trim()})'
+                            : 'Dzielnica / Okolica (opcjonalnie)',
+                        hintText: 'np. Mokotów, Śródmieście, Stare Miasto',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.place_outlined),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
@@ -343,6 +445,9 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                       final author = _authorController.text.trim();
                       final isbn = _isbnController.text.trim();
                       final price = double.tryParse(_priceController.text);
+                      final city = _cityController.text.trim().isNotEmpty
+                          ? _cityController.text.trim()
+                          : provider.currentCity;
                       final district = _districtController.text.trim();
                       final prefs = _preferencesController.text.trim();
 
@@ -362,8 +467,9 @@ class _CreateListingDialogState extends State<CreateListingDialog> {
                         book: book,
                         type: _type,
                         price: price,
-                        exchangePreferences: prefs.isNotEmpty ? prefs : null,
+                        city: city,
                         district: district.isNotEmpty ? district : null,
+                        exchangePreferences: prefs.isNotEmpty ? prefs : null,
                       );
 
                       if (!context.mounted) {

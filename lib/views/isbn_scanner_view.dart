@@ -477,6 +477,7 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
     // Price controller
     final priceController = TextEditingController(text: '20');
     final prefController = TextEditingController();
+    final districtController = TextEditingController();
     ListingType selectedType = ListingType.both;
     BookCondition selectedCondition = currentBook.condition;
 
@@ -907,6 +908,20 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                 ),
                 const SizedBox(height: 12),
 
+                // Dzielnica / Okolica
+                TextField(
+                  controller: districtController,
+                  decoration: const InputDecoration(
+                    labelText: 'Dzielnica / Okolica (opcjonalnie)',
+                    hintText: 'np. Mokotów, Śródmieście, Stare Miasto',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.place_outlined),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 // Preferencje wymiany
                 TextField(
                   controller: prefController,
@@ -961,6 +976,7 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                             ? prefController.text.trim()
                             : 'Chętnie wymienię na inną książkę',
                         city: provider.currentCity,
+                        district: districtController.text.trim().isNotEmpty ? districtController.text.trim() : null,
                       );
                       Navigator.pop(ctx);
                       if (widget.targetMode != ScannerTargetMode.general &&
