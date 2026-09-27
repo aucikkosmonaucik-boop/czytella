@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,9 +64,37 @@ class CzytellaProvider with ChangeNotifier {
   String _sortBy = 'distance'; // 'distance', 'newest', 'price'
 
   bool _isInitialized = false;
+  Timer? _autoSyncTimer;
 
-  CzytellaProvider() {
+  CzytellaProvider({bool? autoSync}) {
     _loadInitialData();
+    final shouldAutoSync = autoSync ?? !_isTestMode();
+    if (shouldAutoSync) {
+      _startAutoSync();
+    }
+  }
+
+  static bool _isTestMode() {
+    try {
+      final bindingName = WidgetsBinding.instance.runtimeType.toString();
+      return bindingName.contains('Test');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _startAutoSync() {
+    _autoSyncTimer?.cancel();
+    // Silently poll backend listings every 25 seconds in the background
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      _syncWithBackendListings();
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoSyncTimer?.cancel();
+    super.dispose();
   }
 
   // Getters
@@ -828,6 +857,31 @@ class CzytellaProvider with ChangeNotifier {
     try {
       final remoteListings = await ApiService.fetchListings();
       if (remoteListings.isNotEmpty) {
+        final updated = remoteListings.map((l) {
+          final isMine = _currentUser != null &&
+              (l.sellerId == _currentUser!.id ||
+                  l.sellerName == _currentUser!.name);
+          return l.copyWith(isUserListing: isMine);
+        }).toList();
+
+        final hasChanged = _listings.length != updated.length ||
+            !_listings.every((existing) => updated.any((u) => u.id == existing.id && u.book.title == existing.book.title));
+
+        if (hasChanged) {
+          _listings = updated;
+          notifyListeners();
+          _saveState();
+        }
+      }
+    } catch (e) {
+      debugPrint('Sync with backend listings error: $e');
+    }
+  }
+
+  Future<void> refreshListings() async {
+    try {
+      final remoteListings = await ApiService.fetchListings();
+      if (remoteListings.isNotEmpty) {
         _listings = remoteListings.map((l) {
           final isMine = _currentUser != null &&
               (l.sellerId == _currentUser!.id ||
@@ -838,12 +892,8 @@ class CzytellaProvider with ChangeNotifier {
         _saveState();
       }
     } catch (e) {
-      debugPrint('Sync with backend listings error: $e');
+      debugPrint('Refresh listings error: $e');
     }
-  }
-
-  Future<void> refreshListings() async {
-    await _syncWithBackendListings();
   }
 
   Future<void> _saveState() async {

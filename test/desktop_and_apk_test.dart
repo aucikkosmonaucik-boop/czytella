@@ -78,4 +78,21 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
     expect(find.text('Wpisz ISBN np. 9788375780635'), findsOneWidget);
   });
+
+  testWidgets('ListingsView mobile layout has pull-to-refresh and no manual refresh button with snackbar', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(const CzytellaApp());
+    await tester.pumpAndSettle(const Duration(milliseconds: 800));
+
+    // RefreshIndicator is present for seamless pull-to-refresh
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+
+    // Manual refresh icon button is removed
+    expect(find.byIcon(Icons.refresh_rounded), findsNothing);
+    expect(find.byTooltip('Odśwież ogłoszenia'), findsNothing);
+    expect(find.textContaining('Zaktualizowano ogłoszenia z bazy danych Railway'), findsNothing);
+  });
 }

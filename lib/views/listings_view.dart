@@ -19,7 +19,7 @@ class ListingsView extends StatefulWidget {
   State<ListingsView> createState() => _ListingsViewState();
 }
 
-class _ListingsViewState extends State<ListingsView> {
+class _ListingsViewState extends State<ListingsView> with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> _popularCategories = const [
@@ -36,13 +36,22 @@ class _ListingsViewState extends State<ListingsView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CzytellaProvider>().refreshListings();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<CzytellaProvider>().refreshListings();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
   }
@@ -519,110 +528,98 @@ class _ListingsViewState extends State<ListingsView> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // App Bar with Search & Location indicator
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            snap: false,
-            elevation: 0,
-            automaticallyImplyLeading: false,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.menu_book,
-                        size: 22,
-                        color: isDark
-                            ? const Color(0xFF86E875)
-                            : const Color(0xFF2E7D32)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Czytella',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        color: isDark
-                            ? const Color(0xFF86E875)
-                            : const Color(0xFF1E5128),
-                      ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () => LocationFilterSheet.show(context),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+      body: RefreshIndicator(
+        color: const Color(0xFF1E5128),
+        onRefresh: () => provider.refreshListings(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // App Bar with Search & Location indicator
+            SliverAppBar(
+              floating: true,
+              pinned: true,
+              snap: false,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Icon(Icons.location_on,
-                          size: 13,
+                      Icon(Icons.menu_book,
+                          size: 22,
                           color: isDark
-                              ? const Color(0xFF7ED96E)
-                              : Colors.green.shade800),
-                      const SizedBox(width: 2),
-                      Flexible(
-                        child: Text(
-                          'Twoja lokalizacja: ${provider.currentCity}',
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? const Color(0xFFA5F098)
-                                : Colors.green.shade900,
-                          ),
+                              ? const Color(0xFF86E875)
+                              : const Color(0xFF2E7D32)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Czytella',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
+                          color: isDark
+                              ? const Color(0xFF86E875)
+                              : const Color(0xFF1E5128),
                         ),
                       ),
-                      const Icon(Icons.arrow_drop_down,
-                          size: 16, color: Colors.green),
                     ],
                   ),
-                ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                icon: Badge(
-                  isLabelVisible: hasActiveLocationFilter,
-                  child: const Icon(Icons.tune),
-                ),
-                tooltip: 'Filtry i lokalizacja',
-                onPressed: () => LocationFilterSheet.show(context),
+                  GestureDetector(
+                    onTap: () => LocationFilterSheet.show(context),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.location_on,
+                            size: 13,
+                            color: isDark
+                                ? const Color(0xFF7ED96E)
+                                : Colors.green.shade800),
+                        const SizedBox(width: 2),
+                        Flexible(
+                          child: Text(
+                            'Twoja lokalizacja: ${provider.currentCity}',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? const Color(0xFFA5F098)
+                                  : Colors.green.shade900,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.arrow_drop_down,
+                            size: 16, color: Colors.green),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: Icon(
-                  provider.themeMode == ThemeMode.dark
-                      ? Icons.light_mode_rounded
-                      : Icons.dark_mode_outlined,
-                  color: provider.themeMode == ThemeMode.dark
-                      ? Colors.amber
-                      : null,
+              actions: [
+                IconButton(
+                  icon: Badge(
+                    isLabelVisible: hasActiveLocationFilter,
+                    child: const Icon(Icons.tune),
+                  ),
+                  tooltip: 'Filtry i lokalizacja',
+                  onPressed: () => LocationFilterSheet.show(context),
                 ),
-                tooltip: provider.themeMode == ThemeMode.dark
-                    ? 'Motyw jasny'
-                    : 'Motyw ciemny',
-                onPressed: () => provider.toggleTheme(),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded),
-                tooltip: 'Odśwież ogłoszenia',
-                onPressed: () async {
-                  await provider.refreshListings();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Zaktualizowano ogłoszenia z bazy danych Railway.'),
-                        duration: Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-              ),
-              IconButton(
-                icon: provider.isAuthenticated
+                IconButton(
+                  icon: Icon(
+                    provider.themeMode == ThemeMode.dark
+                        ? Icons.light_mode_rounded
+                        : Icons.dark_mode_outlined,
+                    color: provider.themeMode == ThemeMode.dark
+                        ? Colors.amber
+                        : null,
+                  ),
+                  tooltip: provider.themeMode == ThemeMode.dark
+                      ? 'Motyw jasny'
+                      : 'Motyw ciemny',
+                  onPressed: () => provider.toggleTheme(),
+                ),
+                IconButton(
+                  icon: provider.isAuthenticated
                     ? CircleAvatar(
                         radius: 13,
                         backgroundColor: const Color(0xFF1E5128),
@@ -880,6 +877,7 @@ class _ListingsViewState extends State<ListingsView> {
           ),
         ],
       ),
+    ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Dodaj ogłoszenie'),
