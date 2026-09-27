@@ -533,14 +533,20 @@ class _ListingsViewState extends State<ListingsView> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.menu_book,
-                        size: 22, color: Color(0xFF2E7D32)),
+                    Icon(Icons.menu_book,
+                        size: 22,
+                        color: isDark
+                            ? const Color(0xFF86E875)
+                            : const Color(0xFF2E7D32)),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Czytella',
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
+                        color: isDark
+                            ? const Color(0xFF86E875)
+                            : const Color(0xFF1E5128),
                       ),
                     ),
                   ],
