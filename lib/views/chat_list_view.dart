@@ -20,6 +20,7 @@ class _ChatListViewState extends State<ChatListView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final provider = context.watch<CzytellaProvider>();
     final conversations = provider.conversations;
 
@@ -47,9 +48,12 @@ class _ChatListViewState extends State<ChatListView> {
             Container(
               width: 380,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF161E17) : Colors.white,
                 border: Border(
-                  right: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                  right: BorderSide(
+                    color: isDark ? const Color(0xFF28352A) : Colors.grey.shade200,
+                    width: 1.5,
+                  ),
                 ),
               ),
               child: Column(
@@ -61,7 +65,7 @@ class _ChatListViewState extends State<ChatListView> {
                       'Wiadomości i czaty',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF1E5128),
+                        color: isDark ? const Color(0xFF86E875) : const Color(0xFF1E5128),
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -100,16 +104,19 @@ class _ChatListViewState extends State<ChatListView> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.chat_bubble_outline_rounded,
-                                size: 64, color: Colors.grey.shade300),
+                                size: 64,
+                                color: isDark
+                                    ? const Color(0xFF2E3D30)
+                                    : Colors.grey.shade300),
                             const SizedBox(height: 16),
                             Text(
                               conversations.isEmpty
                                   ? 'Brak aktywnych rozmów'
                                   : 'Wybierz rozmowę z listy po lewej',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey,
+                                color: isDark ? Colors.grey.shade400 : Colors.grey,
                               ),
                             ),
                             if (conversations.isEmpty) ...[
@@ -119,7 +126,7 @@ class _ChatListViewState extends State<ChatListView> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade600,
+                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                 ),
                               ),
                             ],
@@ -220,6 +227,8 @@ class _ChatListViewState extends State<ChatListView> {
     List<ChatConversation> conversations, {
     required bool isDesktop,
   }) {
+    final isDark = theme.brightness == Brightness.dark;
+
     if (conversations.isEmpty) {
       return Center(
         child: Padding(
@@ -228,13 +237,15 @@ class _ChatListViewState extends State<ChatListView> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.chat_bubble_outline,
-                  size: 56, color: Colors.grey.shade400),
+                  size: 56,
+                  color: isDark ? const Color(0xFF2E3D30) : Colors.grey.shade400),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Brak aktywnych rozmów',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
               const SizedBox(height: 6),
@@ -243,7 +254,7 @@ class _ChatListViewState extends State<ChatListView> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                 ),
               ),
             ],
@@ -255,14 +266,16 @@ class _ChatListViewState extends State<ChatListView> {
     return ListView.separated(
       itemCount: conversations.length,
       separatorBuilder: (_, __) =>
-          Divider(height: 1, color: Colors.grey.shade200),
+          Divider(height: 1, color: isDark ? const Color(0xFF28352A) : Colors.grey.shade200),
       itemBuilder: (context, index) {
         final conv = conversations[index];
         final hasUnread = conv.unreadCount > 0;
         final isSelected = isDesktop && conv.id == _selectedConversationId;
 
         return Container(
-          color: isSelected ? const Color(0xFFEAF4EA) : Colors.transparent,
+          color: isSelected
+              ? (isDark ? const Color(0xFF243B26) : const Color(0xFFEAF4EA))
+              : Colors.transparent,
           child: ListTile(
             selected: isSelected,
             onTap: () {
@@ -283,15 +296,15 @@ class _ChatListViewState extends State<ChatListView> {
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: isSelected
-                      ? const Color(0xFF1E5128)
-                      : theme.colorScheme.primaryContainer,
+                      ? (isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128))
+                      : (isDark ? const Color(0xFF1E3520) : theme.colorScheme.primaryContainer),
                   child: Text(
                     conv.otherUserName.substring(0, 1),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: isSelected
                           ? Colors.white
-                          : theme.colorScheme.primary,
+                          : (isDark ? const Color(0xFF86E875) : theme.colorScheme.primary),
                     ),
                   ),
                 ),
@@ -319,6 +332,7 @@ class _ChatListViewState extends State<ChatListView> {
                       fontWeight:
                           hasUnread ? FontWeight.bold : FontWeight.w600,
                       fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -329,8 +343,8 @@ class _ChatListViewState extends State<ChatListView> {
                   style: TextStyle(
                     fontSize: 11,
                     color: hasUnread
-                        ? theme.colorScheme.primary
-                        : Colors.grey.shade500,
+                        ? (isDark ? const Color(0xFF86E875) : theme.colorScheme.primary)
+                        : (isDark ? Colors.grey.shade400 : Colors.grey.shade500),
                     fontWeight:
                         hasUnread ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -344,14 +358,15 @@ class _ChatListViewState extends State<ChatListView> {
                 Row(
                   children: [
                     Icon(Icons.menu_book,
-                        size: 12, color: Colors.grey.shade600),
+                        size: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         conv.bookTitle,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade700,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                           fontStyle: FontStyle.italic,
                         ),
                         maxLines: 1,
@@ -365,7 +380,9 @@ class _ChatListViewState extends State<ChatListView> {
                   conv.lastMessageSnippet,
                   style: TextStyle(
                     fontSize: 12,
-                    color: hasUnread ? Colors.black87 : Colors.grey.shade600,
+                    color: hasUnread
+                        ? (isDark ? Colors.white : Colors.black87)
+                        : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                     fontWeight:
                         hasUnread ? FontWeight.w600 : FontWeight.normal,
                   ),
@@ -381,8 +398,8 @@ class _ChatListViewState extends State<ChatListView> {
                   Container(
                     margin: const EdgeInsets.only(right: 6),
                     padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1E5128),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128),
                       shape: BoxShape.circle,
                     ),
                     child: Text(

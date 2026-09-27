@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 800;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: isDesktop
@@ -79,10 +80,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'assets/images/logo.png',
                                     width: 28,
                                     height: 28,
-                                    errorBuilder: (_, __, ___) => const Icon(
+                                    errorBuilder: (_, __, ___) => Icon(
                                       Icons.menu_book_rounded,
                                       size: 26,
-                                      color: Color(0xFF1E5128),
+                                      color: isDark
+                                          ? const Color(0xFF86E875)
+                                          : const Color(0xFF1E5128),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -90,12 +93,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Czytella',
                                         style: TextStyle(
                                           fontSize: 19,
                                           fontWeight: FontWeight.w900,
-                                          color: Color(0xFF1E5128),
+                                          color: isDark
+                                              ? const Color(0xFF86E875)
+                                              : const Color(0xFF1E5128),
                                           letterSpacing: -0.5,
                                         ),
                                       ),
@@ -104,7 +109,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                           'Wymiana i sprzedaż książek',
                                           style: TextStyle(
                                             fontSize: 9,
-                                            color: Colors.grey.shade600,
+                                            color: isDark
+                                                ? Colors.grey.shade400
+                                                : Colors.grey.shade600,
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
@@ -214,8 +221,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     // "+ Dodaj ogłoszenie" button
                                     FilledButton.icon(
                                       style: FilledButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF1E5128),
+                                        backgroundColor: isDark
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFF1E5128),
+                                        foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 14, vertical: 10),
                                         shape: RoundedRectangleBorder(
@@ -295,19 +304,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: Colors.green.shade50,
+                                            color: isDark
+                                                ? const Color(0xFF1E3520)
+                                                : Colors.green.shade50,
                                             borderRadius:
                                                 BorderRadius.circular(10),
                                             border: Border.all(
-                                                color: Colors.green.shade200),
+                                                color: isDark
+                                                    ? const Color(0xFF2E5E33)
+                                                    : Colors.green.shade200),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               CircleAvatar(
                                                 radius: 12,
-                                                backgroundColor:
-                                                    const Color(0xFF1E5128),
+                                                backgroundColor: isDark
+                                                    ? const Color(0xFF2E7D32)
+                                                    : const Color(0xFF1E5128),
                                                 child: Text(
                                                   provider
                                                       .currentUser!.initials,
@@ -328,20 +342,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   provider.currentUser!.name,
                                                   overflow:
                                                       TextOverflow.ellipsis,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontWeight:
                                                         FontWeight.bold,
                                                     fontSize: 12,
-                                                    color:
-                                                        Color(0xFF1E5128),
+                                                    color: isDark
+                                                        ? const Color(0xFF86E875)
+                                                        : const Color(0xFF1E5128),
                                                   ),
                                                 ),
                                               ),
                                               const SizedBox(width: 2),
-                                              const Icon(
+                                              Icon(
                                                   Icons.arrow_drop_down,
                                                   size: 16,
-                                                  color: Color(0xFF1E5128)),
+                                                  color: isDark
+                                                      ? const Color(0xFF86E875)
+                                                      : const Color(0xFF1E5128)),
                                             ],
                                           ),
                                         ),
@@ -349,10 +366,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     else
                                       OutlinedButton.icon(
                                         style: OutlinedButton.styleFrom(
-                                          foregroundColor:
-                                              const Color(0xFF1E5128),
+                                          foregroundColor: isDark
+                                              ? const Color(0xFF86E875)
+                                              : const Color(0xFF1E5128),
                                           side: BorderSide(
-                                              color: Colors.grey.shade400),
+                                              color: isDark
+                                                  ? const Color(0xFF4E9F3D)
+                                                  : Colors.grey.shade400),
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 12, vertical: 8),
                                           shape: RoundedRectangleBorder(
@@ -444,6 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
     int? badgeCount,
   }) {
     final isSelected = _currentIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
@@ -452,7 +473,9 @@ class _HomeScreenState extends State<HomeScreen> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFD6E8D5) : Colors.transparent,
+          color: isSelected
+              ? (isDark ? const Color(0xFF243B26) : const Color(0xFFD6E8D5))
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -465,8 +488,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 isSelected ? activeIcon : icon,
                 size: 19,
                 color: isSelected
-                    ? const Color(0xFF1E5128)
-                    : Colors.grey.shade700,
+                    ? (isDark ? const Color(0xFF86E875) : const Color(0xFF1E5128))
+                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade700),
               ),
             ),
             const SizedBox(width: 6),
@@ -476,8 +499,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 color: isSelected
-                    ? const Color(0xFF1E5128)
-                    : Colors.grey.shade800,
+                    ? (isDark ? const Color(0xFF86E875) : const Color(0xFF1E5128))
+                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
               ),
             ),
             if (count != null && count > 0) ...[
@@ -486,8 +509,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF1E5128)
-                      : Colors.grey.shade300,
+                      ? (isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128))
+                      : (isDark ? const Color(0xFF28352A) : Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -495,7 +518,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : Colors.grey.shade800,
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? Colors.grey.shade200 : Colors.grey.shade800),
                   ),
                 ),
               ),

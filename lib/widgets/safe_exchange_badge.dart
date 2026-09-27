@@ -12,6 +12,8 @@ class SafeExchangeBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final isDark = theme.brightness == Brightness.dark;
+
     if (compact) {
       return InkWell(
         onTap: () => _showSafetyModal(context),
@@ -19,19 +21,22 @@ class SafeExchangeBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.teal.withOpacity(0.08),
+            color: isDark ? const Color(0xFF14241F) : Colors.teal.withOpacity(0.08),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.teal.withOpacity(0.25)),
+            border: Border.all(
+              color: isDark ? const Color(0xFF1F4D3C) : Colors.teal.withOpacity(0.25),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.shield_outlined, size: 16, color: Colors.teal),
+              Icon(Icons.shield_outlined,
+                  size: 16, color: isDark ? const Color(0xFF64D2B4) : Colors.teal),
               const SizedBox(width: 6),
               Text(
                 'Bezpieczna wymiana (brak tel/FB)',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: Colors.teal.shade800,
+                  color: isDark ? const Color(0xFF8CEFD6) : Colors.teal.shade800,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -45,9 +50,11 @@ class SafeExchangeBadge extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
+        color: isDark ? const Color(0xFF162518) : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFA5D6A7)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF28502C) : const Color(0xFFA5D6A7),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,7 +62,7 @@ class SafeExchangeBadge extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.green.shade700,
+              color: isDark ? const Color(0xFF2E7D32) : Colors.green.shade700,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -73,14 +80,14 @@ class SafeExchangeBadge extends StatelessWidget {
                   'Bezpieczna wymiana w Czytelli',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade900,
+                    color: isDark ? const Color(0xFF86E875) : Colors.green.shade900,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   'Wszystkie szczegóły dogadaj bezpośrednio tutaj na wewnętrznym czacie. Nie ma potrzeby podawania numeru telefonu ani prywatnego profilu na Facebooku.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.green.shade900,
+                    color: isDark ? const Color(0xFFD0ECD0) : Colors.green.shade900,
                     height: 1.35,
                   ),
                 ),
@@ -88,7 +95,9 @@ class SafeExchangeBadge extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.info_outline, size: 18, color: Colors.green),
+            icon: Icon(Icons.info_outline,
+                size: 18,
+                color: isDark ? const Color(0xFF86E875) : Colors.green),
             onPressed: () => _showSafetyModal(context),
             tooltip: 'Wskazówki bezpieczeństwa',
           ),

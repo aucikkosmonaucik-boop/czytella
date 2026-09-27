@@ -97,5 +97,34 @@ void main() {
     }
     expect(DistanceService.popularCities.length, greaterThanOrEqualTo(16));
   });
+
+  testWidgets('Czytella dark theme toggle switches brightness and renders crisp UI', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(const CzytellaApp());
+    await tester.pumpAndSettle();
+
+    // Find the theme toggle icon button
+    final themeToggleFinder = find.byTooltip('Przełącz na motyw ciemny');
+    expect(themeToggleFinder, findsOneWidget);
+
+    // Tap theme toggle to switch to dark mode
+    await tester.tap(themeToggleFinder);
+    await tester.pumpAndSettle();
+
+    // Verify tooltip changed to switch to light mode
+    expect(find.byTooltip('Przełącz na motyw jasny'), findsOneWidget);
+
+    // Verify ListingsView filter card and chips are properly visible
+    expect(find.text('W promieniu 5 km'), findsOneWidget);
+    expect(find.text('Wszystkie'), findsWidgets);
+
+    // Switch back to light mode
+    await tester.tap(find.byTooltip('Przełącz na motyw jasny'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Przełącz na motyw ciemny'), findsOneWidget);
+  });
 }
 

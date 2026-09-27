@@ -78,6 +78,7 @@ class _ListingsViewState extends State<ListingsView> {
   ) {
     final screenWidth = MediaQuery.of(context).size.width;
     final int crossAxisCount = screenWidth >= 1150 ? 3 : 2;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -98,12 +99,14 @@ class _ListingsViewState extends State<ListingsView> {
               child: Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1B231C) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF28352A) : Colors.grey.shade200,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -119,22 +122,37 @@ class _ListingsViewState extends State<ListingsView> {
                           child: Container(
                             height: 48,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF7F8F6),
+                              color: isDark
+                                  ? const Color(0xFF141914)
+                                  : const Color(0xFFF7F8F6),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
+                              border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF2E3D30)
+                                    : Colors.grey.shade300,
+                              ),
                             ),
                             child: TextField(
                               controller: _searchController,
                               onChanged: (val) => provider.setSearchQuery(val),
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black87,
+                                fontSize: 14,
+                              ),
                               decoration: InputDecoration(
                                 hintText:
                                     'Szukaj po tytule, autorze, kategorii lub numerze ISBN...',
                                 hintStyle: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey.shade600,
+                                  color: isDark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600,
                                 ),
-                                prefixIcon: const Icon(Icons.search,
-                                    size: 22, color: Color(0xFF1E5128)),
+                                prefixIcon: Icon(Icons.search,
+                                    size: 22,
+                                    color: isDark
+                                        ? const Color(0xFF5DBB4D)
+                                        : const Color(0xFF1E5128)),
                                 suffixIcon: provider.searchQuery.isNotEmpty
                                     ? IconButton(
                                         icon: const Icon(Icons.clear, size: 20),
@@ -163,14 +181,23 @@ class _ListingsViewState extends State<ListingsView> {
                             height: 48,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
-                              color: Colors.green.shade50,
+                              color: isDark
+                                  ? const Color(0xFF1E3520)
+                                  : Colors.green.shade50,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.green.shade300),
+                              border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF2E6335)
+                                    : Colors.green.shade300,
+                              ),
                             ),
                             child: Row(
                               children: [
                                 Icon(Icons.place,
-                                    size: 18, color: Colors.green.shade800),
+                                    size: 18,
+                                    color: isDark
+                                        ? const Color(0xFF7ED96E)
+                                        : Colors.green.shade800),
                                 const SizedBox(width: 6),
                                 Text(
                                   provider.selectedCityFilter ??
@@ -178,12 +205,17 @@ class _ListingsViewState extends State<ListingsView> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
-                                    color: Colors.green.shade900,
+                                    color: isDark
+                                        ? const Color(0xFFA5F098)
+                                        : Colors.green.shade900,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.keyboard_arrow_down,
-                                    size: 18, color: Colors.green),
+                                Icon(Icons.keyboard_arrow_down,
+                                    size: 18,
+                                    color: isDark
+                                        ? const Color(0xFF7ED96E)
+                                        : Colors.green),
                               ],
                             ),
                           ),
@@ -226,23 +258,37 @@ class _ListingsViewState extends State<ListingsView> {
                         Container(
                           width: 1,
                           height: 24,
-                          color: Colors.grey.shade300,
+                          color: isDark
+                              ? const Color(0xFF2E3D30)
+                              : Colors.grey.shade300,
                         ),
 
                         // Radius quick filters
                         FilterChip(
-                          avatar: const Icon(Icons.radar, size: 16),
+                          avatar: Icon(Icons.radar,
+                              size: 16,
+                              color: provider.radiusFilterKm == 5.0
+                                  ? (isDark ? const Color(0xFFA5F098) : const Color(0xFF1E5128))
+                                  : (isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
                           label: const Text('W promieniu 5 km'),
                           selected: provider.radiusFilterKm == 5.0,
-                          selectedColor: const Color(0xFFD6E8D5),
+                          selectedColor: isDark
+                              ? const Color(0xFF28542B)
+                              : const Color(0xFFD6E8D5),
+                          backgroundColor: isDark ? const Color(0xFF161E17) : null,
+                          side: BorderSide(
+                            color: provider.radiusFilterKm == 5.0
+                                ? (isDark ? const Color(0xFF5DBB4D) : const Color(0xFF1E5128))
+                                : (isDark ? const Color(0xFF2E3D30) : Colors.grey.shade300),
+                          ),
                           labelStyle: TextStyle(
                             fontSize: 12,
                             fontWeight: provider.radiusFilterKm == 5.0
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                             color: provider.radiusFilterKm == 5.0
-                                ? const Color(0xFF1E5128)
-                                : Colors.grey.shade800,
+                                ? (isDark ? const Color(0xFFA5F098) : const Color(0xFF1E5128))
+                                : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
                           ),
                           onSelected: (selected) {
                             provider.setRadiusFilter(selected ? 5.0 : null);
@@ -251,15 +297,23 @@ class _ListingsViewState extends State<ListingsView> {
                         FilterChip(
                           label: const Text('Do 10 km'),
                           selected: provider.radiusFilterKm == 10.0,
-                          selectedColor: const Color(0xFFD6E8D5),
+                          selectedColor: isDark
+                              ? const Color(0xFF28542B)
+                              : const Color(0xFFD6E8D5),
+                          backgroundColor: isDark ? const Color(0xFF161E17) : null,
+                          side: BorderSide(
+                            color: provider.radiusFilterKm == 10.0
+                                ? (isDark ? const Color(0xFF5DBB4D) : const Color(0xFF1E5128))
+                                : (isDark ? const Color(0xFF2E3D30) : Colors.grey.shade300),
+                          ),
                           labelStyle: TextStyle(
                             fontSize: 12,
                             fontWeight: provider.radiusFilterKm == 10.0
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                             color: provider.radiusFilterKm == 10.0
-                                ? const Color(0xFF1E5128)
-                                : Colors.grey.shade800,
+                                ? (isDark ? const Color(0xFFA5F098) : const Color(0xFF1E5128))
+                                : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
                           ),
                           onSelected: (selected) {
                             provider.setRadiusFilter(selected ? 10.0 : null);
@@ -268,15 +322,23 @@ class _ListingsViewState extends State<ListingsView> {
                         FilterChip(
                           label: const Text('Do 25 km'),
                           selected: provider.radiusFilterKm == 25.0,
-                          selectedColor: const Color(0xFFD6E8D5),
+                          selectedColor: isDark
+                              ? const Color(0xFF28542B)
+                              : const Color(0xFFD6E8D5),
+                          backgroundColor: isDark ? const Color(0xFF161E17) : null,
+                          side: BorderSide(
+                            color: provider.radiusFilterKm == 25.0
+                                ? (isDark ? const Color(0xFF5DBB4D) : const Color(0xFF1E5128))
+                                : (isDark ? const Color(0xFF2E3D30) : Colors.grey.shade300),
+                          ),
                           labelStyle: TextStyle(
                             fontSize: 12,
                             fontWeight: provider.radiusFilterKm == 25.0
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                             color: provider.radiusFilterKm == 25.0
-                                ? const Color(0xFF1E5128)
-                                : Colors.grey.shade800,
+                                ? (isDark ? const Color(0xFFA5F098) : const Color(0xFF1E5128))
+                                : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
                           ),
                           onSelected: (selected) {
                             provider.setRadiusFilter(selected ? 25.0 : null);
@@ -323,10 +385,21 @@ class _ListingsViewState extends State<ListingsView> {
                                 fontWeight: isSelected
                                     ? FontWeight.bold
                                     : FontWeight.normal,
+                                color: isSelected
+                                    ? (isDark ? Colors.white : Colors.green.shade900)
+                                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade800),
                               ),
                             ),
                             selected: isSelected,
-                            selectedColor: Colors.green.shade100,
+                            selectedColor: isDark
+                                ? const Color(0xFF2E6B32)
+                                : Colors.green.shade100,
+                            backgroundColor: isDark ? const Color(0xFF161E17) : null,
+                            side: BorderSide(
+                              color: isSelected
+                                  ? (isDark ? const Color(0xFF5DBB4D) : Colors.green.shade300)
+                                  : (isDark ? const Color(0xFF2E3D30) : Colors.grey.shade300),
+                            ),
                             onSelected: (selected) {
                               if (isAll) {
                                 provider.setCategoryFilter(null);
@@ -354,7 +427,7 @@ class _ListingsViewState extends State<ListingsView> {
                     'Oferty społeczności (${listings.length})',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
-                      color: Colors.grey.shade900,
+                      color: isDark ? Colors.white : Colors.grey.shade900,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -364,16 +437,24 @@ class _ListingsViewState extends State<ListingsView> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: isDark
+                            ? const Color(0xFF1E3520)
+                            : Colors.green.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.shade300),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF2E6335)
+                              : Colors.green.shade300,
+                        ),
                       ),
                       child: Text(
                         '📍 Promień: ${provider.radiusFilterKm!.toInt()} km od ${provider.currentCity}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green.shade900,
+                          color: isDark
+                              ? const Color(0xFFA5F098)
+                              : Colors.green.shade900,
                         ),
                       ),
                     ),
@@ -435,6 +516,8 @@ class _ListingsViewState extends State<ListingsView> {
     List<Listing> listings,
     bool hasActiveLocationFilter,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -468,7 +551,10 @@ class _ListingsViewState extends State<ListingsView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.location_on,
-                          size: 13, color: Colors.green.shade800),
+                          size: 13,
+                          color: isDark
+                              ? const Color(0xFF7ED96E)
+                              : Colors.green.shade800),
                       const SizedBox(width: 2),
                       Flexible(
                         child: Text(
@@ -477,7 +563,9 @@ class _ListingsViewState extends State<ListingsView> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.green.shade900,
+                            color: isDark
+                                ? const Color(0xFFA5F098)
+                                : Colors.green.shade900,
                           ),
                         ),
                       ),
@@ -574,13 +662,23 @@ class _ListingsViewState extends State<ListingsView> {
                       child: TextField(
                         controller: _searchController,
                         onChanged: (val) => provider.setSearchQuery(val),
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 14,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Szukaj tytułu, autora, ISBN...',
                           hintStyle: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey.shade600,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
                           ),
-                          prefixIcon: const Icon(Icons.search, size: 20),
+                          prefixIcon: Icon(Icons.search,
+                              size: 20,
+                              color: isDark
+                                  ? const Color(0xFF5DBB4D)
+                                  : Colors.grey.shade700),
                           suffixIcon: provider.searchQuery.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(Icons.clear, size: 18),
@@ -610,18 +708,30 @@ class _ListingsViewState extends State<ListingsView> {
                       children: [
                         // Radius 5 km filter (highlighted preset)
                         FilterChip(
-                          avatar: const Icon(Icons.radar, size: 16),
+                          avatar: Icon(Icons.radar,
+                              size: 16,
+                              color: provider.radiusFilterKm == 5.0
+                                  ? (isDark ? const Color(0xFFA5F098) : Colors.green.shade900)
+                                  : (isDark ? Colors.grey.shade400 : Colors.grey.shade700)),
                           label: const Text('W promieniu 5 km'),
                           selected: provider.radiusFilterKm == 5.0,
-                          selectedColor: Colors.green.shade100,
+                          selectedColor: isDark
+                              ? const Color(0xFF28542B)
+                              : Colors.green.shade100,
+                          backgroundColor: isDark ? const Color(0xFF161E17) : null,
+                          side: BorderSide(
+                            color: provider.radiusFilterKm == 5.0
+                                ? (isDark ? const Color(0xFF5DBB4D) : Colors.green.shade400)
+                                : (isDark ? const Color(0xFF2E3D30) : Colors.grey.shade300),
+                          ),
                           labelStyle: TextStyle(
                             fontSize: 12,
                             fontWeight: provider.radiusFilterKm == 5.0
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                             color: provider.radiusFilterKm == 5.0
-                                ? Colors.green.shade900
-                                : null,
+                                ? (isDark ? const Color(0xFFA5F098) : Colors.green.shade900)
+                                : (isDark ? Colors.grey.shade300 : null),
                           ),
                           onSelected: (selected) {
                             provider.setRadiusFilter(selected ? 5.0 : null);
@@ -695,7 +805,7 @@ class _ListingsViewState extends State<ListingsView> {
                     'Oferty społeczności (${listings.length})',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
+                      color: isDark ? Colors.white : Colors.grey.shade800,
                     ),
                   ),
                   const Spacer(),
@@ -704,16 +814,24 @@ class _ListingsViewState extends State<ListingsView> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: isDark
+                            ? const Color(0xFF1E3520)
+                            : Colors.green.shade50,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.green.shade200),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF2E6335)
+                              : Colors.green.shade200,
+                        ),
                       ),
                       child: Text(
                         '📍 Promień: ${provider.radiusFilterKm!.toInt()} km',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green.shade800,
+                          color: isDark
+                              ? const Color(0xFFA5F098)
+                              : Colors.green.shade800,
                         ),
                       ),
                     ),
@@ -789,6 +907,7 @@ class _ListingsViewState extends State<ListingsView> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -796,10 +915,14 @@ class _ListingsViewState extends State<ListingsView> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E5128) : Colors.grey.shade100,
+          color: isSelected
+              ? (isDark ? const Color(0xFF2E6B32) : const Color(0xFF1E5128))
+              : (isDark ? const Color(0xFF161E17) : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1E5128) : Colors.grey.shade300,
+            color: isSelected
+                ? (isDark ? const Color(0xFF5DBB4D) : const Color(0xFF1E5128))
+                : (isDark ? const Color(0xFF2E3D30) : Colors.grey.shade300),
           ),
         ),
         child: Text(
@@ -807,7 +930,9 @@ class _ListingsViewState extends State<ListingsView> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : Colors.grey.shade800,
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.grey.shade200 : Colors.grey.shade800),
           ),
         ),
       ),

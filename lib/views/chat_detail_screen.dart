@@ -398,26 +398,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     // System message
     if (msg.senderId == 'system') {
+      final isDark = theme.brightness == Brightness.dark;
       return Center(
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: isDark ? const Color(0xFF162E18) : Colors.green.shade50,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.green.shade200),
+            border: Border.all(
+              color: isDark ? const Color(0xFF28552D) : Colors.green.shade200,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock, size: 13, color: Colors.teal),
+              Icon(
+                Icons.lock,
+                size: 13,
+                color: isDark ? const Color(0xFF86E875) : Colors.teal,
+              ),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   msg.text,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.green.shade900,
+                    color: isDark ? const Color(0xFFC7EBC6) : Colors.green.shade900,
                     fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
@@ -512,6 +519,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     bool isMe,
   ) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     Color statusColor;
     switch (prop.status) {
       case ProposalStatus.accepted:
@@ -556,32 +564,41 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ],
           ),
           const Divider(height: 14),
-          Text(
-            'Oferowana książka:',
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-          ),
-          Text(
-            '📚 ${prop.offeredBookTitle}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'W zamian za:',
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-          ),
-          Text(
-            '📖 ${prop.requestedBookTitle}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          ),
-          if (prop.proposedLocation != null &&
-              prop.proposedLocation!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              '📍 Miejsce spotkania: ${prop.proposedLocation}',
-              style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade800),
-            ),
-          ],
-          const SizedBox(height: 10),
+              Text(
+                'Oferowana książka:',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+              Text(
+                '📚 ${prop.offeredBookTitle}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'W zamian za:',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+              Text(
+                '📖 ${prop.requestedBookTitle}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              if (prop.proposedLocation != null &&
+                  prop.proposedLocation!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '📍 Miejsce spotkania: ${prop.proposedLocation}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? const Color(0xFFC7EBC6) : Colors.blueGrey.shade800,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
 
           // Status Badge
           Container(

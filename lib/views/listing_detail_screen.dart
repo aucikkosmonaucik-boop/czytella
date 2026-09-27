@@ -129,151 +129,167 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (mCtx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
+      builder: (mCtx) {
+        final isDark = Theme.of(mCtx).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF3E4F41) : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    const Icon(Icons.edit_note,
-                        size: 24, color: Color(0xFF1E5128)),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Edytuj ogłoszenie',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Title & Author
-                TextField(
-                  controller: titleCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Tytuł książki',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: authorCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Autor',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Typ oferty
-                const Text('Typ oferty:',
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: const Text('Wymiana lub sprzedaż'),
-                      selected: selectedType == ListingType.both,
-                      selectedColor: const Color(0xFFD6E8D5),
-                      onSelected: (_) =>
-                          setSheetState(() => selectedType = ListingType.both),
-                    ),
-                    ChoiceChip(
-                      label: const Text('Tylko sprzedaż'),
-                      selected: selectedType == ListingType.sale,
-                      selectedColor: const Color(0xFFD6E8D5),
-                      onSelected: (_) =>
-                          setSheetState(() => selectedType = ListingType.sale),
-                    ),
-                    ChoiceChip(
-                      label: const Text('Tylko wymiana'),
-                      selected: selectedType == ListingType.exchange,
-                      selectedColor: const Color(0xFFD6E8D5),
-                      onSelected: (_) => setSheetState(
-                          () => selectedType = ListingType.exchange),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Price (if sale or both)
-                if (selectedType != ListingType.exchange) ...[
+                  const SizedBox(height: 14),
                   Row(
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: priceCtrl,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Cena w złotych (PLN)',
-                            suffixText: 'zł',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.payments_outlined),
-                          ),
-                        ),
+                      Icon(Icons.edit_note,
+                          size: 24,
+                          color: isDark
+                              ? const Color(0xFF86E875)
+                              : const Color(0xFF1E5128)),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Edytuj ogłoszenie',
+                        style:
+                            TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
+
+                  // Title & Author
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Tytuł książki',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: authorCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Autor',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Typ oferty
+                  const Text('Typ oferty:',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Wymiana lub sprzedaż'),
+                        selected: selectedType == ListingType.both,
+                        selectedColor: isDark
+                            ? const Color(0xFF2E6B32)
+                            : const Color(0xFFD6E8D5),
+                        onSelected: (_) =>
+                            setSheetState(() => selectedType = ListingType.both),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Tylko sprzedaż'),
+                        selected: selectedType == ListingType.sale,
+                        selectedColor: isDark
+                            ? const Color(0xFF2E6B32)
+                            : const Color(0xFFD6E8D5),
+                        onSelected: (_) =>
+                            setSheetState(() => selectedType = ListingType.sale),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Tylko wymiana'),
+                        selected: selectedType == ListingType.exchange,
+                        selectedColor: isDark
+                            ? const Color(0xFF2E6B32)
+                            : const Color(0xFFD6E8D5),
+                        onSelected: (_) => setSheetState(
+                            () => selectedType = ListingType.exchange),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Price (if sale or both)
+                  if (selectedType != ListingType.exchange) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: priceCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Cena w złotych (PLN)',
+                              suffixText: 'zł',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.payments_outlined),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      children: ['10', '15', '20', '25', '30', '50'].map((p) {
+                        return ActionChip(
+                          label: Text('$p zł'),
+                          onPressed: () => setSheetState(() => priceCtrl.text = p),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // Condition
+                  const Text('Stan książki:',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
                   Wrap(
                     spacing: 6,
-                    children: ['10', '15', '20', '25', '30', '50'].map((p) {
-                      return ActionChip(
-                        label: Text('$p zł'),
-                        onPressed: () => setSheetState(() => priceCtrl.text = p),
+                    children: BookCondition.values.map((cond) {
+                      return ChoiceChip(
+                        label: Text(cond.label),
+                        selected: selectedCondition == cond,
+                        selectedColor: isDark
+                            ? const Color(0xFF2E6B32)
+                            : const Color(0xFFD6E8D5),
+                        onSelected: (_) =>
+                            setSheetState(() => selectedCondition = cond),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 14),
-                ],
 
-                // Condition
-                const Text('Stan książki:',
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  children: BookCondition.values.map((cond) {
-                    return ChoiceChip(
-                      label: Text(cond.label),
-                      selected: selectedCondition == cond,
-                      selectedColor: const Color(0xFFD6E8D5),
-                      onSelected: (_) =>
-                          setSheetState(() => selectedCondition = cond),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-
-                // City
-                Row(
-                  children: [
-                    const Icon(Icons.location_on,
-                        size: 18, color: Color(0xFF1E5128)),
-                    const SizedBox(width: 6),
+                  // City
+                  Row(
+                    children: [
+                      Icon(Icons.location_on,
+                          size: 18,
+                          color: isDark
+                              ? const Color(0xFF86E875)
+                              : const Color(0xFF1E5128)),
+                      const SizedBox(width: 6),
                     Text(
                       'Miasto: $selectedCity',
                       style: const TextStyle(
@@ -338,7 +354,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     const SizedBox(width: 8),
                     FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E5128),
+                        backgroundColor: isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 12),
                       ),
@@ -390,9 +407,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -401,6 +419,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     final distanceKm = provider.getDistanceFromUser(_currentListing);
     final isNearby = distanceKm <= 5.0;
     final isMine = _isMyListing(provider);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -441,19 +460,24 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 width: double.infinity,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                color: Colors.green.shade100,
+                color: isDark ? const Color(0xFF1E3520) : Colors.green.shade100,
                 child: Row(
                   children: [
-                    const Icon(Icons.verified_user_outlined,
-                        size: 16, color: Color(0xFF1E5128)),
+                    Icon(Icons.verified_user_outlined,
+                        size: 16,
+                        color: isDark
+                            ? const Color(0xFF86E875)
+                            : const Color(0xFF1E5128)),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'To jest Twoje ogłoszenie. Możesz je edytować lub usunąć.',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E5128),
+                          color: isDark
+                              ? const Color(0xFFA5F098)
+                              : const Color(0xFF1E5128),
                         ),
                       ),
                     ),
@@ -464,13 +488,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      icon: const Icon(Icons.edit,
-                          size: 13, color: Color(0xFF1E5128)),
-                      label: const Text('Edytuj',
+                      icon: Icon(Icons.edit,
+                          size: 13,
+                          color: isDark
+                              ? const Color(0xFF86E875)
+                              : const Color(0xFF1E5128)),
+                      label: Text('Edytuj',
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E5128))),
+                              color: isDark
+                                  ? const Color(0xFF86E875)
+                                  : const Color(0xFF1E5128))),
                       onPressed: () =>
                           _openEditListingDialog(context, provider),
                     ),
@@ -507,7 +536,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Type Badge
-                        _buildDetailTypeBadge(_currentListing),
+                        _buildDetailTypeBadge(_currentListing, isDark),
                         const SizedBox(height: 8),
 
                         // Title
@@ -535,15 +564,16 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark ? const Color(0xFF1B231C) : Colors.white,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.grey.shade300),
+                            border: Border.all(color: isDark ? const Color(0xFF28352A) : Colors.grey.shade300),
                           ),
                           child: Text(
                             'Stan: ${_currentListing.book.condition.label}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.grey.shade200 : Colors.black87,
                             ),
                           ),
                         ),
@@ -553,7 +583,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         Row(
                           children: [
                             Icon(Icons.location_on,
-                                size: 16, color: Colors.grey.shade700),
+                                size: 16, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -562,7 +592,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                     : _currentListing.city,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade800,
+                                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -583,20 +613,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: isDark ? const Color(0xFF162E18) : Colors.green.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.shade300),
+                  border: Border.all(color: isDark ? const Color(0xFF28552D) : Colors.green.shade300),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade100,
+                        color: isDark ? const Color(0xFF1F4324) : Colors.green.shade100,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.near_me,
-                          size: 18, color: Colors.green.shade900),
+                          size: 18, color: isDark ? const Color(0xFF86E875) : Colors.green.shade900),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -608,13 +638,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
-                              color: Colors.green.shade900,
+                              color: isDark ? const Color(0xFF86E875) : Colors.green.shade900,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Idealna okazja do szybkiej wymiany osobiście bez kosztów wysyłki!',
-                            style:
-                                TextStyle(fontSize: 11, color: Colors.black87),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? Colors.grey.shade300 : Colors.black87,
+                            ),
                           ),
                         ],
                       ),
@@ -651,15 +683,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
+                        color: isDark ? const Color(0xFF2E2413) : Colors.amber.shade50,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.amber.shade200),
+                        border: Border.all(color: isDark ? const Color(0xFF5E4923) : Colors.amber.shade200),
                       ),
                       child: Text(
                         _currentListing.exchangePreferences!,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.brown.shade900,
+                          color: isDark ? const Color(0xFFFFD54F) : Colors.brown.shade900,
                           height: 1.3,
                         ),
                       ),
@@ -680,14 +712,14 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       _currentListing.book.description,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         height: 1.45,
-                        color: Colors.grey.shade800,
+                        color: isDark ? const Color(0xFFDDE3DD) : Colors.grey.shade800,
                       ),
                     ),
                     const SizedBox(height: 20),
                   ],
 
                   // Additional metadata details
-                  _buildBookSpecs(_currentListing.book),
+                  _buildBookSpecs(context, _currentListing.book),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -719,21 +751,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           horizontal: 12, vertical: 7),
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: isDark ? const Color(0xFF162E18) : Colors.green.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.shade200),
+                        border: Border.all(color: isDark ? const Color(0xFF28552D) : Colors.green.shade200),
                       ),
                       child: Row(
                         children: [
                           Icon(Icons.info_outline,
-                              size: 15, color: Colors.green.shade900),
+                              size: 15, color: isDark ? const Color(0xFF86E875) : Colors.green.shade900),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'To Twoja oferta. Inni czytelnicy widzą tutaj przycisk „Napisz na czacie” i mogą pisać do Ciebie.',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.green.shade900,
+                                color: isDark ? const Color(0xFFC7EBC6) : Colors.green.shade900,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -773,7 +805,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E5128),
+                              backgroundColor: isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128),
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -795,6 +828,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         icon: const Icon(Icons.swap_horiz),
                         label: const Text('Zaproponuj wymianę'),
                         style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark ? const Color(0xFF86E875) : const Color(0xFF1E5128),
+                          side: BorderSide(color: isDark ? const Color(0xFF4E9F3D) : const Color(0xFF1E5128)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -823,7 +858,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         icon: const Icon(Icons.chat_outlined),
                         label: const Text('Napisz na czacie'),
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E5128),
+                          backgroundColor: isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128),
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -859,18 +895,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  Widget _buildDetailTypeBadge(Listing listing) {
+  Widget _buildDetailTypeBadge(Listing listing, bool isDark) {
     if (listing.type == ListingType.exchange) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.indigo.shade100,
+          color: isDark ? const Color(0xFF1E284A) : Colors.indigo.shade100,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           'Tylko wymiana',
           style: TextStyle(
-            color: Colors.indigo.shade900,
+            color: isDark ? const Color(0xFF90CAF9) : Colors.indigo.shade900,
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -880,13 +916,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.teal.shade100,
+          color: isDark ? const Color(0xFF113834) : Colors.teal.shade100,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           'Sprzedaż: ${listing.price?.toStringAsFixed(0) ?? "--"} PLN',
           style: TextStyle(
-            color: Colors.teal.shade900,
+            color: isDark ? const Color(0xFF80CBC4) : Colors.teal.shade900,
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -896,13 +932,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.amber.shade100,
+          color: isDark ? const Color(0xFF382A13) : Colors.amber.shade100,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           'Wymiana lub sprzedaż (${listing.price?.toStringAsFixed(0) ?? "--"} PLN)',
           style: TextStyle(
-            color: Colors.brown.shade900,
+            color: isDark ? const Color(0xFFFFD54F) : Colors.brown.shade900,
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -913,29 +949,37 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   Widget _buildSellerCard(BuildContext context, CzytellaProvider provider) {
     final isMine = _isMyListing(provider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isMine ? Colors.green.shade50 : Colors.grey.shade50,
+        color: isMine
+            ? (isDark ? const Color(0xFF162E18) : Colors.green.shade50)
+            : (isDark ? const Color(0xFF1B231C) : Colors.grey.shade50),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isMine ? Colors.green.shade200 : Colors.grey.shade200,
+          color: isMine
+              ? (isDark ? const Color(0xFF28552D) : Colors.green.shade200)
+              : (isDark ? const Color(0xFF28352A) : Colors.grey.shade200),
         ),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor:
-                isMine ? const Color(0xFF1E5128) : Colors.teal.shade100,
+            backgroundColor: isMine
+                ? (isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128))
+                : (isDark ? const Color(0xFF1C3A35) : Colors.teal.shade100),
             child: Text(
               _currentListing.sellerName.isNotEmpty
                   ? _currentListing.sellerName[0].toUpperCase()
                   : 'U',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: isMine ? Colors.white : Colors.teal.shade800,
+                color: isMine
+                    ? Colors.white
+                    : (isDark ? const Color(0xFF80CBC4) : Colors.teal.shade800),
               ),
             ),
           ),
@@ -948,9 +992,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   children: [
                     Text(
                       isMine ? 'Moje konto' : _currentListing.sellerName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                     if (isMine) ...[
@@ -959,12 +1004,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: Colors.green.shade200,
+                          color: isDark
+                              ? const Color(0xFF2E5E33)
+                              : Colors.green.shade200,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text('Autor',
+                        child: Text('Autor',
                             style: TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.bold)),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : Colors.green.shade900)),
                       ),
                     ],
                   ],
@@ -976,14 +1027,19 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     const SizedBox(width: 2),
                     Text(
                       '${_currentListing.sellerRating}',
-                      style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.grey.shade200 : Colors.black87,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '• ${_currentListing.completedExchangesCount} udanych transakcji',
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                      ),
                     ),
                   ],
                 ),
@@ -995,33 +1051,38 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  Widget _buildBookSpecs(Book book) {
+  Widget _buildBookSpecs(BuildContext context, Book book) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Metryka książki:',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: isDark ? const Color(0xFF1B231C) : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: isDark ? const Color(0xFF28352A) : Colors.grey.shade200),
           ),
           child: Column(
             children: [
-              _buildSpecRow('Numer ISBN', book.isbn),
+              _buildSpecRow(context, 'Numer ISBN', book.isbn),
               if (book.publisher != null)
-                _buildSpecRow('Wydawnictwo', book.publisher!),
+                _buildSpecRow(context, 'Wydawnictwo', book.publisher!),
               if (book.publishYear != null)
-                _buildSpecRow('Rok wydania', '${book.publishYear}'),
+                _buildSpecRow(context, 'Rok wydania', '${book.publishYear}'),
               if (book.pageCount != null)
-                _buildSpecRow('Liczba stron', '${book.pageCount}'),
+                _buildSpecRow(context, 'Liczba stron', '${book.pageCount}'),
               if (book.categories.isNotEmpty)
-                _buildSpecRow('Kategoria', book.categories.join(', ')),
+                _buildSpecRow(context, 'Kategoria', book.categories.join(', ')),
             ],
           ),
         ),
@@ -1029,17 +1090,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  Widget _buildSpecRow(String label, String value) {
+  Widget _buildSpecRow(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
           Text(value,
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87)),
         ],
       ),
     );
@@ -1079,92 +1143,101 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              top: 20,
-              left: 20,
-              right: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 20,
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF3E4F41) : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Zaproponuj wymianę książek',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Wybierz książkę ze swojej półki, którą chcesz zaoferować za "${_currentListing.book.title}":',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Book Selector
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF28352A) : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<UserBook>(
+                        isExpanded: true,
+                        value: selectedUserBook,
+                        dropdownColor: isDark ? const Color(0xFF1B231C) : null,
+                        items: userBooks.map((ub) {
+                          return DropdownMenuItem<UserBook>(
+                            value: ub,
+                            child: Text(
+                              '${ub.book.title} (${ub.book.author})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() => selectedUserBook = val);
+                          }
+                        },
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Zaproponuj wymianę książek',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Wybierz książkę ze swojej półki, którą chcesz zaoferować za "${_currentListing.book.title}":',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
 
-                // Book Selector
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<UserBook>(
-                      isExpanded: true,
-                      value: selectedUserBook,
-                      items: userBooks.map((ub) {
-                        return DropdownMenuItem<UserBook>(
-                          value: ub,
-                          child: Text(
-                            '${ub.book.title} (${ub.book.author})',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setModalState(() => selectedUserBook = val);
-                        }
-                      },
+                  // Location field
+                  TextField(
+                    controller: locationController,
+                    decoration: const InputDecoration(
+                      labelText: 'Proponowane miejsce bezpiecznego spotkania',
+                      prefixIcon: Icon(Icons.place_outlined),
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 18),
 
-                // Location field
-                TextField(
-                  controller: locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Proponowane miejsce bezpiecznego spotkania',
-                    prefixIcon: Icon(Icons.place_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.send),
-                    label: const Text('Wyślij propozycję na czacie'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E5128),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onPressed: () {
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.send),
+                      label: const Text('Wyślij propozycję na czacie'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF2E7D32) : const Color(0xFF1E5128),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
                       if (!provider.isAuthenticated) {
                         AuthDialog.show(context);
                         return;
@@ -1205,7 +1278,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
           );
         },
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 }
