@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
@@ -215,7 +216,9 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Zezwól na dostęp do aparatu w przeglądarce, wpisz kod ISBN ręcznie poniżej lub skorzystaj z szybkich testów.',
+                                kIsWeb
+                                    ? 'Zezwól na dostęp do aparatu w przeglądarce, wpisz kod ISBN ręcznie poniżej lub skorzystaj z szybkich testów.'
+                                    : 'Zezwól na dostęp do aparatu w telefonie lub wpisz kod ISBN ręcznie poniżej.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.7),
@@ -266,13 +269,15 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                 ),
 
                 // Animated Laser Line
-                IgnorePointer(
-                  child: AnimatedBuilder(
-                    animation: _animController,
-                    builder: (context, child) {
-                      return Positioned(
-                        top: MediaQuery.of(context).size.height * 0.18 +
-                            (_animController.value * 140),
+                AnimatedBuilder(
+                  animation: _animController,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(
+                        0,
+                        (_animController.value - 0.5) * 140,
+                      ),
+                      child: IgnorePointer(
                         child: Container(
                           width: 260,
                           height: 2.5,
@@ -287,9 +292,9 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
 
                 // Loading overlay
@@ -333,87 +338,90 @@ class _IsbnScannerViewState extends State<IsbnScannerView>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Tip: Mobile APK
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.phone_android,
-                          size: 18, color: Color(0xFF1E5128)),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Wskazówka: Aby skanować fizyczne kody ISBN aparatem telefonu, możesz także pobrać naszą aplikację APK na Androida!',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF1E5128),
-                            fontWeight: FontWeight.w500,
+                // Web-only helper: APK download tip & sample test ISBN chips (removed in mobile APK)
+                if (kIsWeb) ...[
+                  // Tip: Mobile APK
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.phone_android,
+                            size: 18, color: Color(0xFF1E5128)),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Wskazówka: Aby skanować fizyczne kody ISBN aparatem telefonu, możesz także pobrać naszą aplikację APK na Androida!',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF1E5128),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () => ApkDownloadDialog.show(context),
+                          child: const Text(
+                            'Pobierz APK',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E5128),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Preset Barcode Tapper for Quick Demo
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Przykładowe kody ISBN do testu:',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        onPressed: () => ApkDownloadDialog.show(context),
-                        child: const Text(
-                          'Pobierz APK',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E5128),
-                          ),
-                        ),
+                      const Text(
+                        'Dotknij, aby przetestować',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 8),
 
-                // Preset Barcode Tapper for Quick Demo
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Przykładowe kody ISBN do testu:',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  SizedBox(
+                    height: 38,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: IsbnLookupService.demoIsbns.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final item = IsbnLookupService.demoIsbns[index];
+                        return ActionChip(
+                          avatar: const Icon(Icons.qr_code, size: 16),
+                          label: Text('${item.title} (${item.author.split(' ').last})'),
+                          onPressed: () => _processIsbn(item.isbn),
+                        );
+                      },
                     ),
-                    const Text(
-                      'Dotknij, aby przetestować',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                SizedBox(
-                  height: 38,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: IsbnLookupService.demoIsbns.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final item = IsbnLookupService.demoIsbns[index];
-                      return ActionChip(
-                        avatar: const Icon(Icons.qr_code, size: 16),
-                        label: Text('${item.title} (${item.author.split(' ').last})'),
-                        onPressed: () => _processIsbn(item.isbn),
-                      );
-                    },
                   ),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
+                ],
 
                 // Manual ISBN input
                 Row(

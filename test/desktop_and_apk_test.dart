@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:czytella/main.dart';
 import 'package:czytella/widgets/apk_download_dialog.dart';
 import 'package:czytella/widgets/mobile_app_banner.dart';
+import 'package:czytella/views/isbn_scanner_view.dart';
 
 void main() {
   testWidgets('Czytella desktop web layout & APK download banner test', (WidgetTester tester) async {
@@ -51,5 +52,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ApkDownloadDialog), findsNothing);
+  });
+
+  testWidgets('IsbnScannerView in mobile APK hides test sample ISBN codes and APK download tip', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: IsbnScannerView(),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Sample test ISBN chips and header are NOT shown in mobile APK
+    expect(find.text('Przykładowe kody ISBN do testu:'), findsNothing);
+    expect(find.text('Dotknij, aby przetestować'), findsNothing);
+    expect(find.text('Bieguni (Tokarczuk)'), findsNothing);
+
+    // Tip to download APK is NOT shown inside the mobile APK
+    expect(find.textContaining('możesz także pobrać naszą aplikację APK na Androida!'), findsNothing);
+
+    // Manual input is available
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('Wpisz ISBN np. 9788375780635'), findsOneWidget);
   });
 }
