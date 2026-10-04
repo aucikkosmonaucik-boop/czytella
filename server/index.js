@@ -697,7 +697,7 @@ app.get('*', async (req, res) => {
       const protocol = forwardedProto ? forwardedProto.split(',')[0].trim() : (req.secure ? 'https' : 'http');
       const forwardedHost = req.headers['x-forwarded-host'];
       const host = forwardedHost ? forwardedHost.split(',')[0].trim() : (req.get('host') || 'czytella.pl');
-      const baseUrl = `${protocol}://${host}`;
+      const baseUrl = host.includes('railway.app') ? 'https://czytella.pl' : `${protocol}://${host}`;
       const pageUrl = `${baseUrl}/?listing=${encodeURIComponent(listing.id)}`;
 
       let effectiveCoverUrl = listing.coverUrl ? listing.coverUrl.trim() : '';

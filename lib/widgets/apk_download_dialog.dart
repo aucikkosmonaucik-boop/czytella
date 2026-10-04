@@ -94,7 +94,7 @@ class ApkDownloadDialog extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                'v1.0.24 APK',
+                                'v1.0.25 APK',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -297,7 +297,7 @@ class ApkDownloadDialog extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.download_rounded, size: 20),
                       label: const Text(
-                        'Pobierz APK bezpośrednio (v1.0.24)',
+                        'Pobierz APK bezpośrednio (v1.0.25)',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,

@@ -8,6 +8,41 @@
       "dest": "https://czytella-production.up.railway.app/api/$1"
     },
     {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "query",
+          "key": "listing"
+        }
+      ],
+      "dest": "https://czytella-production.up.railway.app/$1"
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "query",
+          "key": "id"
+        }
+      ],
+      "dest": "https://czytella-production.up.railway.app/$1"
+    },
+    {
+      "src": "/(ogloszenie|listing|ksiazka)/(.*)",
+      "dest": "https://czytella-production.up.railway.app/$1/$2"
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|TelegramBot|Discordbot|Slackbot|SkypeUriPreview).*"
+        }
+      ],
+      "dest": "https://czytella-production.up.railway.app/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {

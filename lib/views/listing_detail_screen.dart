@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/listing.dart';
@@ -122,11 +124,55 @@ $shareUrl'''
       final box = context.findRenderObject() as RenderBox?;
       final origin =
           box != null ? (box.localToGlobal(Offset.zero) & box.size) : null;
-      final result = await Share.share(
-        shareText,
-        subject: 'Książka w Czytella: ${listing.book.title}',
-        sharePositionOrigin: origin,
-      );
+
+      XFile? imageFile;
+      final coverUrl = listing.book.coverUrl;
+      if (coverUrl != null && coverUrl.trim().isNotEmpty) {
+        try {
+          if (coverUrl.startsWith('data:image/')) {
+            final commaIndex = coverUrl.indexOf(',');
+            if (commaIndex != -1) {
+              final base64Str = coverUrl.substring(commaIndex + 1);
+              final bytes = base64Decode(base64Str);
+              imageFile = XFile.fromData(
+                bytes,
+                mimeType: 'image/jpeg',
+                name: 'okladka.jpg',
+              );
+            }
+          } else if (coverUrl.startsWith('http')) {
+            final res = await http
+                .get(Uri.parse(coverUrl))
+                .timeout(const Duration(seconds: 4));
+            if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+              final contentType = res.headers['content-type'] ?? 'image/jpeg';
+              imageFile = XFile.fromData(
+                res.bodyBytes,
+                mimeType: contentType,
+                name: 'okladka.jpg',
+              );
+            }
+          }
+        } catch (e) {
+          debugPrint('Error preparing cover for share: $e');
+        }
+      }
+
+      ShareResult result;
+      if (imageFile != null) {
+        result = await Share.shareXFiles(
+          [imageFile],
+          text: shareText,
+          subject: 'Książka w Czytella: ${listing.book.title}',
+          sharePositionOrigin: origin,
+        );
+      } else {
+        result = await Share.share(
+          shareText,
+          subject: 'Książka w Czytella: ${listing.book.title}',
+          sharePositionOrigin: origin,
+        );
+      }
 
       if (result.status == ShareResultStatus.unavailable) {
         throw Exception('Share unavailable');
