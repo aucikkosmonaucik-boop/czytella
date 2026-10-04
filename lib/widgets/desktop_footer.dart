@@ -193,7 +193,7 @@ class DesktopFooter extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
-                        'v1.0.22 APK',
+                        'v1.0.23 APK',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
