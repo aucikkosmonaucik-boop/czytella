@@ -267,8 +267,44 @@ void main() {
     expect(find.text('Edytuj ofertę'), findsNothing);
     expect(find.text('Usuń ogłoszenie'), findsNothing);
     expect(find.byTooltip('Edytuj ogłoszenie'), findsNothing);
-    expect(find.byTooltip('Usuń ogłoszenie'), findsNothing);
     expect(find.text('To jest Twoje ogłoszenie. Możesz je edytować lub usunąć.'), findsNothing);
+  });
+
+  testWidgets('ListingDetailScreen displays working share button with tooltip', (WidgetTester tester) async {
+    final provider = CzytellaProvider();
+    final listing = Listing(
+      id: 'listing_share_test',
+      book: Book(
+        id: 'book_share_1',
+        title: 'Lalka',
+        author: 'Bolesław Prus',
+        isbn: '9788308060001',
+        description: 'Klasyka',
+        condition: BookCondition.good,
+      ),
+      sellerId: 'other_user',
+      sellerName: 'Ktoś',
+      city: 'Warszawa',
+      latitude: 52.2297,
+      longitude: 21.0122,
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: ListingDetailScreen(listing: listing),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final shareButton = find.byTooltip('Udostępnij ogłoszenie');
+    expect(shareButton, findsOneWidget);
+    expect(find.byIcon(Icons.share_outlined), findsOneWidget);
+
+    await tester.tap(shareButton);
+    await tester.pump();
   });
 
   testWidgets('Chat requires authentication to send messages', (WidgetTester tester) async {

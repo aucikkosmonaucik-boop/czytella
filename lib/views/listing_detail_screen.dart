@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/listing.dart';
 import '../models/book.dart';
 import '../models/user_book.dart';
@@ -89,6 +91,56 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           content: Text('Usunięto ogłoszenie "${_currentListing.book.title}".'),
         ),
       );
+    }
+  }
+
+  Future<void> _shareListing(BuildContext context) async {
+    final listing = _currentListing;
+    final location =
+        listing.district != null && listing.district!.trim().isNotEmpty
+            ? '${listing.city}, ${listing.district}'
+            : listing.city;
+
+    final typeDescription = listing.type == ListingType.exchange
+        ? 'Tylko wymiana'
+        : listing.type == ListingType.sale
+            ? 'Sprzedaż: ${listing.price?.toStringAsFixed(0) ?? "--"} zł'
+            : 'Wymiana lub sprzedaż (${listing.price?.toStringAsFixed(0) ?? "--"} zł)';
+
+    final shareUrl = 'https://czytella.pl/?listing=${listing.id}';
+    final shareText = '''
+📚 Czytella: "${listing.book.title}" – ${listing.book.author}
+📍 Lokalizacja: $location
+🔄 Oferta: $typeDescription
+📖 Stan: ${listing.book.condition.label}
+
+Zobacz ogłoszenie:
+$shareUrl'''
+        .trim();
+
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      final origin =
+          box != null ? (box.localToGlobal(Offset.zero) & box.size) : null;
+      final result = await Share.share(
+        shareText,
+        subject: 'Książka w Czytella: ${listing.book.title}',
+        sharePositionOrigin: origin,
+      );
+
+      if (result.status == ShareResultStatus.unavailable) {
+        throw Exception('Share unavailable');
+      }
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: shareText));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Skopiowano treść i link ogłoszenia do schowka!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -437,16 +489,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               onPressed: () => _confirmDeleteListing(context, provider),
             ),
           ],
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text('Udostępniono ofertę: ${_currentListing.book.title}'),
-                ),
-              );
-            },
+          Builder(
+            builder: (btnContext) => IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'Udostępnij ogłoszenie',
+              onPressed: () => _shareListing(btnContext),
+            ),
           ),
         ],
       ),
