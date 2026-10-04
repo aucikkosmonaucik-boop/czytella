@@ -230,6 +230,19 @@ class IsbnLookupService {
         final totalItems = data['totalItems'] ?? 0;
         if (totalItems > 0 && data['items'] != null && data['items'].isNotEmpty) {
           final volumeInfo = data['items'][0]['volumeInfo'] ?? {};
+          final rawIds = volumeInfo['industryIdentifiers'] as List<dynamic>?;
+          final identifiers = rawIds
+                  ?.map((id) => (id['identifier'] ?? '')
+                      .toString()
+                      .replaceAll(RegExp(r'[^0-9Xx]'), '')
+                      .toUpperCase())
+                  .toList() ??
+              [];
+          final normalizedSearchIsbn = normalizeIsbn(isbn).toUpperCase();
+          if (identifiers.isNotEmpty && !identifiers.contains(normalizedSearchIsbn)) {
+            // Google Books returned a fuzzy search result rather than this exact ISBN
+            throw Exception('Google Books returned unmatched ISBN');
+          }
           final title = volumeInfo['title'] ?? 'Nieznany tytuł';
           final authors = (volumeInfo['authors'] as List<dynamic>?)
                   ?.join(', ') ??

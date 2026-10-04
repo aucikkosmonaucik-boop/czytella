@@ -26,12 +26,12 @@ void main() {
     });
 
     test('fallback book object returned for novel ISBNs', () async {
-      // 13-digit dummy ISBN
-      const dummyIsbn = '9999999999999';
+      // 13-digit dummy ISBN that does not exist in any catalog
+      const dummyIsbn = '9788390000000';
       final book = await IsbnLookupService.lookupIsbn(dummyIsbn);
       expect(book, isNotNull);
       expect(book!.isbn, dummyIsbn);
-      expect(book.title, contains('ISBN: 9999999999999'));
+      expect(book.title, contains('ISBN: $dummyIsbn'));
     });
   });
 }
