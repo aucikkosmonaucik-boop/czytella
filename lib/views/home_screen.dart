@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/czytella_provider.dart';
+import '../models/listing.dart';
+import '../services/api_service.dart';
+import 'listing_detail_screen.dart';
 import 'listings_view.dart';
 import 'my_shelf_view.dart';
 import 'isbn_scanner_view.dart';
@@ -19,6 +22,61 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  bool _deepLinkHandled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleInitialDeepLink();
+    });
+  }
+
+  Future<void> _handleInitialDeepLink() async {
+    if (_deepLinkHandled) return;
+    try {
+      final uri = Uri.base;
+      String? listingId = uri.queryParameters['listing'] ?? uri.queryParameters['id'];
+
+      if (listingId == null || listingId.isEmpty) {
+        final segments = uri.pathSegments;
+        if (segments.length >= 2 &&
+            (segments[0] == 'ogloszenie' ||
+             segments[0] == 'listing' ||
+             segments[0] == 'ksiazka')) {
+          listingId = segments[1];
+        }
+      }
+
+      if (listingId == null || listingId.trim().isEmpty) return;
+      _deepLinkHandled = true;
+
+      final provider = context.read<CzytellaProvider>();
+
+      if (!provider.isInitialized) {
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
+
+      Listing? targetListing;
+      try {
+        targetListing = provider.allListings.firstWhere(
+          (l) => l.id == listingId,
+        );
+      } catch (_) {
+        targetListing = await ApiService.fetchListingById(listingId);
+      }
+
+      if (targetListing != null && mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (ctx) => ListingDetailScreen(listing: targetListing!),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Deep link error: $e');
+    }
+  }
 
   Widget _buildActiveView() {
     switch (_currentIndex) {

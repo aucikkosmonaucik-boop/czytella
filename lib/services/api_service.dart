@@ -84,6 +84,21 @@ class ApiService {
     return [];
   }
 
+  /// Fetch a single listing by ID from the PostgreSQL database
+  static Future<Listing?> fetchListingById(String id) async {
+    try {
+      final uri = _getUri('/api/listings/$id');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(utf8.decode(res.bodyBytes));
+        return Listing.fromJson(data);
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchListingById error: $e');
+    }
+    return null;
+  }
+
   /// Send a newly created listing to the PostgreSQL database
   static Future<bool> createListing(Listing listing) async {
     try {

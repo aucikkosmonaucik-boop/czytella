@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -144,6 +145,68 @@ app.get('/api/db-check', async (req, res) => {
 
 // ── Listings API ───────────────────────────────────────────────────────────────
 
+// Helper to look up a listing by ID from PostgreSQL or in-memory
+async function findListingById(listingId) {
+  if (!listingId) return null;
+  const cleanId = String(listingId).trim();
+
+  if (pool) {
+    try {
+      const { rows } = await pool.query('SELECT * FROM listings WHERE id = $1 LIMIT 1', [cleanId]);
+      if (rows.length > 0) {
+        const row = rows[0];
+        const raw = row.raw_json || {};
+        return {
+          id: row.id,
+          title: raw.book?.title || row.title || 'Książka',
+          author: raw.book?.author || row.author || 'Autor nieznany',
+          isbn: raw.book?.isbn || row.isbn || '',
+          coverUrl: raw.book?.coverUrl || row.cover_url || null,
+          category: raw.book?.category || row.category || '',
+          condition: raw.book?.condition || row.condition || 'veryGood',
+          description: raw.book?.description || '',
+          sellerName: raw.sellerName || row.seller_name || 'Użytkownik Czytella',
+          sellerRating: raw.sellerRating || Number(row.seller_rating) || 4.9,
+          completedExchangesCount: raw.completedExchangesCount || row.completed_exchanges_count || 0,
+          city: raw.city || row.city || 'Warszawa',
+          district: raw.district || row.district || null,
+          type: raw.type || row.type || 'both',
+          price: raw.price != null ? raw.price : (row.price != null ? Number(row.price) : null),
+          exchangePreferences: raw.exchangePreferences || row.exchange_preferences || '',
+          rawJson: row.raw_json || null
+        };
+      }
+    } catch (err) {
+      console.error('Error fetching listing from DB for OG tags:', err.message);
+    }
+  }
+
+  const mem = inMemoryListings.find(l => l.id === cleanId);
+  if (mem) {
+    return {
+      id: mem.id,
+      title: mem.book?.title || 'Książka',
+      author: mem.book?.author || 'Nieznany',
+      isbn: mem.book?.isbn || '',
+      coverUrl: mem.book?.coverUrl || null,
+      category: mem.book?.category || '',
+      condition: mem.book?.condition || 'veryGood',
+      description: mem.book?.description || '',
+      sellerName: mem.sellerName || 'Użytkownik Czytella',
+      sellerRating: mem.sellerRating || 4.9,
+      completedExchangesCount: mem.completedExchangesCount || 0,
+      city: mem.city || 'Warszawa',
+      district: mem.district || null,
+      type: mem.type || 'both',
+      price: mem.price != null ? mem.price : null,
+      exchangePreferences: mem.exchangePreferences || '',
+      rawJson: mem
+    };
+  }
+
+  return null;
+}
+
 // GET /api/listings
 app.get('/api/listings', async (req, res) => {
   if (pool) {
@@ -157,6 +220,74 @@ app.get('/api/listings', async (req, res) => {
     }
   }
   res.json(inMemoryListings);
+});
+
+// GET /api/listings/:id
+app.get('/api/listings/:id', async (req, res) => {
+  const listing = await findListingById(req.params.id);
+  if (listing) {
+    if (listing.rawJson) {
+      return res.json(listing.rawJson);
+    }
+    return res.json({
+      id: listing.id,
+      book: {
+        id: listing.id,
+        isbn: listing.isbn,
+        title: listing.title,
+        author: listing.author,
+        description: listing.description,
+        coverUrl: listing.coverUrl,
+        category: listing.category,
+        condition: listing.condition,
+      },
+      sellerId: 'unknown',
+      sellerName: listing.sellerName,
+      sellerRating: listing.sellerRating,
+      completedExchangesCount: listing.completedExchangesCount,
+      city: listing.city,
+      district: listing.district,
+      latitude: 52.2297,
+      longitude: 21.0122,
+      type: listing.type,
+      price: listing.price,
+      exchangePreferences: listing.exchangePreferences,
+      createdAt: new Date().toISOString(),
+      isUserListing: false,
+    });
+  }
+  res.status(404).json({ error: 'Listing not found' });
+});
+
+// GET /api/listings/:id/cover
+app.get('/api/listings/:id/cover', async (req, res) => {
+  try {
+    const listing = await findListingById(req.params.id);
+    if (!listing || !listing.coverUrl) {
+      return res.redirect('/icons/og-image.png');
+    }
+
+    const coverUrl = listing.coverUrl.trim();
+    if (coverUrl.startsWith('data:image/')) {
+      const matches = coverUrl.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (matches && matches[1] && matches[2]) {
+        const mimeType = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(buffer);
+      }
+    }
+
+    if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://')) {
+      return res.redirect(coverUrl);
+    }
+
+    return res.redirect('/icons/og-image.png');
+  } catch (err) {
+    console.error('Error serving cover image:', err.message);
+    return res.redirect('/icons/og-image.png');
+  }
 });
 
 // POST /api/listings
@@ -408,9 +539,127 @@ app.post('/api/users', async (req, res) => {
   res.status(200).json(normalizedProfile);
 });
 
-// ── Static Flutter Web Serving & SPA Fallback ──────────────────────────────────
+// ── Dynamic Open Graph & Static Flutter Web Serving ────────────────────────────
 const publicPath = path.join(__dirname, 'public');
+
+function getIndexHtmlTemplate() {
+  const possiblePaths = [
+    path.join(publicPath, 'index.html'),
+    path.join(__dirname, '..', 'build', 'web', 'index.html'),
+    path.join(__dirname, '..', 'web', 'index.html')
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        return fs.readFileSync(p, 'utf8');
+      } catch (e) {
+        console.error('Error reading index.html from ' + p, e.message);
+      }
+    }
+  }
+  return null;
+}
+
+function injectOpenGraphTags(html, { title, description, imageUrl, pageUrl }) {
+  const escapeHtml = (str) => String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  const safeTitle = escapeHtml(title);
+  const safeDesc = escapeHtml(description);
+  const safeImage = escapeHtml(imageUrl);
+  const safeUrl = escapeHtml(pageUrl);
+
+  let updated = html;
+
+  // Replace <title>
+  updated = updated.replace(/<title>.*?<\/title>/i, `<title>${safeTitle}</title>`);
+
+  // Replace <meta name="title">
+  if (/<meta\s+name=["']title["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+name=["']title["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta name="title" content="${safeTitle}">`);
+  }
+
+  // Replace <meta name="description">
+  if (/<meta\s+name=["']description["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+name=["']description["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta name="description" content="${safeDesc}">`);
+  }
+
+  // Replace og:title
+  if (/<meta\s+property=["']og:title["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+property=["']og:title["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta property="og:title" content="${safeTitle}">`);
+  }
+
+  // Replace og:description
+  if (/<meta\s+property=["']og:description["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+property=["']og:description["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta property="og:description" content="${safeDesc}">`);
+  }
+
+  // Replace og:url
+  if (/<meta\s+property=["']og:url["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+property=["']og:url["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta property="og:url" content="${safeUrl}">`);
+  }
+
+  // Replace canonical link
+  if (/<link\s+rel=["']canonical["']/i.test(updated)) {
+    updated = updated.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i,
+      `<link rel="canonical" href="${safeUrl}">`);
+  }
+
+  // Replace og:image
+  if (/<meta\s+property=["']og:image["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+property=["']og:image["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta property="og:image" content="${safeImage}">`);
+  }
+
+  // Replace og:image:secure_url
+  if (/<meta\s+property=["']og:image:secure_url["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+property=["']og:image:secure_url["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta property="og:image:secure_url" content="${safeImage}">`);
+  }
+
+  // Strip static image dimensions so communicators and social apps preserve book cover aspect ratio
+  updated = updated.replace(/<meta\s+property=["']og:image:width["'][^>]*\/?>\s*/gi, '');
+  updated = updated.replace(/<meta\s+property=["']og:image:height["'][^>]*\/?>\s*/gi, '');
+
+  // Replace twitter:title
+  if (/<meta\s+name=["']twitter:title["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+name=["']twitter:title["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta name="twitter:title" content="${safeTitle}">`);
+  }
+
+  // Replace twitter:description
+  if (/<meta\s+name=["']twitter:description["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+name=["']twitter:description["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta name="twitter:description" content="${safeDesc}">`);
+  }
+
+  // Replace twitter:image
+  if (/<meta\s+name=["']twitter:image["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+name=["']twitter:image["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta name="twitter:image" content="${safeImage}">`);
+  }
+
+  // Replace twitter:url
+  if (/<meta\s+name=["']twitter:url["']/i.test(updated)) {
+    updated = updated.replace(/<meta\s+name=["']twitter:url["']\s+content=["'][^"']*["']\s*\/?>/i,
+      `<meta name="twitter:url" content="${safeUrl}">`);
+  }
+
+  return updated;
+}
+
+// Serve static compiled assets (.js, .wasm, icons, css, etc.)
+// index: false ensures root '/' and SPA URLs reach our dynamic handler below
 app.use(express.static(publicPath, {
+  index: false,
   maxAge: '1d',
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
@@ -419,13 +668,89 @@ app.use(express.static(publicPath, {
   }
 }));
 
-app.get('*', (req, res) => {
-  const indexPath = path.join(publicPath, 'index.html');
-  res.sendFile(indexPath, err => {
-    if (err) {
-      res.status(200).send('Czytella API Backend is running. Deploy frontend assets to public/ to view web app.');
+app.get('*', async (req, res) => {
+  // If requesting a static resource with an extension that wasn't found in publicPath, return 404
+  const ext = path.extname(req.path);
+  if (ext && ext !== '.html') {
+    return res.status(404).send('Not found');
+  }
+
+  const rawHtml = getIndexHtmlTemplate();
+  if (!rawHtml) {
+    return res.status(200).send('Czytella API Backend is running. Deploy frontend assets to public/ to view web app.');
+  }
+
+  // Check if a listing was requested
+  // Supports ?listing=ID, ?id=ID, /ogloszenie/ID, /listing/ID, /ksiazka/ID
+  let listingId = req.query.listing || req.query.id;
+  if (!listingId) {
+    const pathMatch = req.path.match(/^\/(?:ogloszenie|listing|ksiazka)\/([^/?#]+)/i);
+    if (pathMatch) {
+      listingId = decodeURIComponent(pathMatch[1]);
     }
-  });
+  }
+
+  if (listingId) {
+    const listing = await findListingById(listingId);
+    if (listing) {
+      const forwardedProto = req.headers['x-forwarded-proto'];
+      const protocol = forwardedProto ? forwardedProto.split(',')[0].trim() : (req.secure ? 'https' : 'http');
+      const forwardedHost = req.headers['x-forwarded-host'];
+      const host = forwardedHost ? forwardedHost.split(',')[0].trim() : (req.get('host') || 'czytella.pl');
+      const baseUrl = `${protocol}://${host}`;
+      const pageUrl = `${baseUrl}/?listing=${encodeURIComponent(listing.id)}`;
+
+      let effectiveCoverUrl = listing.coverUrl ? listing.coverUrl.trim() : '';
+      if (effectiveCoverUrl.startsWith('data:image/')) {
+        effectiveCoverUrl = `${baseUrl}/api/listings/${encodeURIComponent(listing.id)}/cover`;
+      } else if (effectiveCoverUrl.startsWith('//')) {
+        effectiveCoverUrl = 'https:' + effectiveCoverUrl;
+      } else if (effectiveCoverUrl.startsWith('http://')) {
+        effectiveCoverUrl = effectiveCoverUrl.replace('http://', 'https://');
+      } else if (!effectiveCoverUrl.startsWith('http')) {
+        effectiveCoverUrl = `${baseUrl}/icons/og-image.png`;
+      }
+
+      const conditionLabels = {
+        asNew: 'Jak nowa',
+        veryGood: 'Bardzo dobry',
+        good: 'Dobry',
+        acceptable: 'Ślady używania'
+      };
+      const conditionText = conditionLabels[listing.condition] || listing.condition || 'Dobry';
+
+      let typeText = 'Wymiana lub sprzedaż';
+      if (listing.type === 'exchange') {
+        typeText = 'Tylko wymiana';
+      } else if (listing.type === 'sale') {
+        typeText = `Sprzedaż: ${listing.price ? listing.price + ' zł' : ''}`;
+      } else if (listing.price) {
+        typeText = `Wymiana lub sprzedaż (${listing.price} zł)`;
+      }
+
+      const locParts = [listing.city, listing.district].filter(Boolean);
+      const locText = locParts.length > 0 ? locParts.join(', ') : 'Polska';
+
+      const title = `📚 ${listing.title} – ${listing.author} | Czytella`;
+      const description = `${typeText} • Lokalizacja: ${locText} • Stan: ${conditionText}. Kliknij, aby przejść do ogłoszenia w aplikacji Czytella!`;
+
+      const injectedHtml = injectOpenGraphTags(rawHtml, {
+        title,
+        description,
+        imageUrl: effectiveCoverUrl,
+        pageUrl
+      });
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.send(injectedHtml);
+    }
+  }
+
+  // Normal request without listing: serve index.html
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.send(rawHtml);
 });
 
 app.listen(port, () => {
