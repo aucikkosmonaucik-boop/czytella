@@ -105,7 +105,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   Future<void> _confirmAdminDeleteListing(
-      BuildContext context, CzytellaProvider provider) async {
+      CzytellaProvider provider) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dCtx) => AlertDialog(
@@ -135,8 +135,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
     if (confirmed == true && mounted) {
       await provider.adminDeleteListing(_currentListing.id);
-      Navigator.of(this.context).pop();
-      ScaffoldMessenger.of(this.context).showSnackBar(
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             'Usunięto ogłoszenie "${_currentListing.book.title}" jako administrator.',
@@ -589,7 +590,7 @@ $shareUrl'''
             IconButton(
               icon: const Icon(Icons.shield_outlined, color: Colors.red),
               tooltip: 'Usuń jako Administrator',
-              onPressed: () => _confirmAdminDeleteListing(context, provider),
+              onPressed: () => _confirmAdminDeleteListing(provider),
             ),
           ],
           Builder(

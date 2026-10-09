@@ -140,7 +140,7 @@ class _AdminPanelDialogState extends State<AdminPanelDialog>
         title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.red),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text('Moderacja: Usunąć ogłoszenie?'),
           ],
         ),
