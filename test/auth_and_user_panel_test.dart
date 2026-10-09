@@ -431,6 +431,31 @@ void main() {
     // Verify book is still on user shelf
     expect(provider.userBooks.any((ub) => ub.book.title == 'Solaris'), isTrue);
   });
+
+  test('Account aucikkosmonaucik@gmail.com has administrator rights and access to admin features', () async {
+    final provider = CzytellaProvider();
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // Regular user is not admin
+    await provider.register(
+      name: 'Zwykły Czytelnik',
+      email: 'czytelnik@czytella.pl',
+      password: 'password123',
+      city: 'Warszawa',
+    );
+    expect(provider.isAdmin, isFalse);
+    expect(provider.currentUser?.isSuperAdmin, isFalse);
+
+    // Login as aucikkosmonaucik@gmail.com
+    await provider.login(
+      email: 'aucikkosmonaucik@gmail.com',
+      password: 'password123',
+    );
+    expect(provider.isAuthenticated, isTrue);
+    expect(provider.isAdmin, isTrue);
+    expect(provider.currentUser?.isSuperAdmin, isTrue);
+    expect(provider.currentUser?.isBlocked, isFalse);
+  });
 }
 
 

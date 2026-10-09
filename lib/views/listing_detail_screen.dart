@@ -104,6 +104,49 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 
+  Future<void> _confirmAdminDeleteListing(
+      BuildContext context, CzytellaProvider provider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.shield_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Moderacja Administratora'),
+          ],
+        ),
+        content: Text(
+          'Czy na pewno chcesz usunąć ogłoszenie "${_currentListing.book.title}" (wystawił: ${_currentListing.sellerName}) jako administrator platformy Czytella?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: const Text('Usuń z platformy'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await provider.adminDeleteListing(_currentListing.id);
+      Navigator.of(this.context).pop();
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Usunięto ogłoszenie "${_currentListing.book.title}" jako administrator.',
+          ),
+          backgroundColor: Colors.red.shade800,
+        ),
+      );
+    }
+  }
+
   Future<void> _shareListing(BuildContext context) async {
     final listing = _currentListing;
     final location =
@@ -541,6 +584,12 @@ $shareUrl'''
               icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
               tooltip: 'Usuń ogłoszenie',
               onPressed: () => _confirmDeleteListing(context, provider),
+            ),
+          ] else if (provider.isAdmin) ...[
+            IconButton(
+              icon: const Icon(Icons.shield_outlined, color: Colors.red),
+              tooltip: 'Usuń jako Administrator',
+              onPressed: () => _confirmAdminDeleteListing(context, provider),
             ),
           ],
           Builder(

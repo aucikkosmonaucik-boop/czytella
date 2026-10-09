@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/czytella_provider.dart';
+import 'admin_panel_dialog.dart';
 
 class UserProfileDialog extends StatefulWidget {
   final VoidCallback? onNavigateToShelf;
@@ -214,6 +215,33 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               spacing: 8,
                               runSpacing: 4,
                               children: [
+                                if (profile.isSuperAdmin)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFC107).withOpacity(0.18),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                          color: const Color(0xFFFFC107), width: 1.2),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.shield_rounded,
+                                            size: 13, color: Color(0xFFB78103)),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Administrator Czytelli',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF8C6000),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 3),
@@ -451,6 +479,50 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       ),
                     ),
                   ] else ...[
+                    // Admin Panel button if superadmin
+                    if (profile.isSuperAdmin) ...[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: theme.brightness == Brightness.dark
+                                ? [const Color(0xFF2E2405), const Color(0xFF1F1A05)]
+                                : [const Color(0xFFFFF9E6), const Color(0xFFFFF3CD)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: const Color(0xFFFFC107), width: 1.5),
+                        ),
+                        child: ListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFC107),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.admin_panel_settings_rounded,
+                                color: Colors.black87, size: 20),
+                          ),
+                          title: const Text(
+                            'Panel Administratora Platformy',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          subtitle: const Text(
+                            'Zarządzaj kontami, blokuj użytkowników i moderuj ogłoszenia',
+                            style: TextStyle(fontSize: 11),
+                          ),
+                          trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                              size: 14, color: Color(0xFFB78103)),
+                          onTap: () {
+                            AdminPanelDialog.show(context);
+                          },
+                        ),
+                      ),
+                    ],
+
                     // Quick Navigation actions
                     ListTile(
                       shape: RoundedRectangleBorder(

@@ -183,4 +183,58 @@ class ApiService {
       return false;
     }
   }
+
+  /// Admin: Fetch all registered users
+  static Future<List<Map<String, dynamic>>> fetchAdminUsers() async {
+    try {
+      final uri = _getUri('/api/admin/users');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final List data = json.decode(utf8.decode(res.bodyBytes));
+        return data.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchAdminUsers error: $e');
+    }
+    return [];
+  }
+
+  /// Admin: Toggle blocked status of an account
+  static Future<bool> toggleBlockUser(String email) async {
+    try {
+      final clean = Uri.encodeComponent(email.trim().toLowerCase());
+      final uri = _getUri('/api/admin/users/$clean/toggle-block');
+      final res = await http.post(uri).timeout(const Duration(seconds: 8));
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint('ApiService.toggleBlockUser error: $e');
+      return false;
+    }
+  }
+
+  /// Admin: Delete any listing platform-wide
+  static Future<bool> adminDeleteListing(String listingId) async {
+    try {
+      final uri = _getUri('/api/admin/listings/$listingId');
+      final res = await http.delete(uri).timeout(const Duration(seconds: 8));
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint('ApiService.adminDeleteListing error: $e');
+      return false;
+    }
+  }
+
+  /// Admin: Fetch platform statistics
+  static Future<Map<String, dynamic>> fetchAdminStats() async {
+    try {
+      final uri = _getUri('/api/admin/stats');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        return json.decode(utf8.decode(res.bodyBytes));
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchAdminStats error: $e');
+    }
+    return {};
+  }
 }

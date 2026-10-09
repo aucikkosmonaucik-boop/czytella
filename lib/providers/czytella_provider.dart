@@ -22,6 +22,8 @@ class CzytellaProvider with ChangeNotifier {
   UserProfile? _currentUser;
   UserProfile? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null;
+  bool get isAdmin => _currentUser?.isSuperAdmin ?? false;
+  bool get isBlocked => _currentUser?.isBlocked ?? false;
 
   // Theme Mode (Light / Dark / System)
   ThemeMode _themeMode = ThemeMode.system;
@@ -857,6 +859,29 @@ class CzytellaProvider with ChangeNotifier {
 
     // Persist permanently in Railway PostgreSQL database
     ApiService.saveUserProfile(updatedProfile, previousName: previousName);
+  }
+
+  // --- ADMIN OPERATIONS ---
+
+  Future<List<Map<String, dynamic>>> fetchAdminUsers() async {
+    return await ApiService.fetchAdminUsers();
+  }
+
+  Future<bool> toggleBlockUser(String email) async {
+    final success = await ApiService.toggleBlockUser(email);
+    if (success) {
+      notifyListeners();
+    }
+    return success;
+  }
+
+  Future<bool> adminDeleteListing(String listingId) async {
+    removeListing(listingId);
+    return await ApiService.adminDeleteListing(listingId);
+  }
+
+  Future<Map<String, dynamic>> fetchAdminStats() async {
+    return await ApiService.fetchAdminStats();
   }
 
   // --- PERSISTENCE ---

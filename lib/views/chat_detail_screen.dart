@@ -293,8 +293,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ],
             ),
             child: SafeArea(
-              child: !provider.isAuthenticated
+              child: provider.isBlocked
                   ? Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.block_rounded,
+                              size: 18, color: Colors.red),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Twoje konto zostało zablokowane przez administratora.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : !provider.isAuthenticated
+                      ? Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),

@@ -96,6 +96,18 @@ async function initTables() {
     await pool.query(sql);
     console.log('✅ Database tables initialized (listings, messages).');
 
+    // Schema updates for users table (admin & blocking)
+    try {
+      await pool.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT false;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
+        UPDATE users SET is_admin = true WHERE LOWER(email) = 'aucikkosmonaucik@gmail.com';
+      `);
+      console.log('✅ Admin and blocking columns initialized in users table.');
+    } catch (colErr) {
+      console.warn('Users table column note:', colErr.message);
+    }
+
     // Harmonize listings raw_json with column values for seller_name, city, and seller_id
     try {
       await pool.query(`
@@ -335,6 +347,15 @@ app.post('/api/listings', async (req, res) => {
 
   if (pool) {
     try {
+      if (listing.sellerId) {
+        const checkBlocked = await pool.query(
+          'SELECT is_blocked FROM users WHERE (id = $1 OR name = $2) AND is_blocked = true LIMIT 1',
+          [listing.sellerId, listing.sellerName || '']
+        );
+        if (checkBlocked.rows.length > 0) {
+          return res.status(403).json({ error: 'Konto zostało zablokowane przez administratora.' });
+        }
+      }
       const book = listing.book || {};
       const query = `
         INSERT INTO listings (
@@ -491,11 +512,16 @@ app.get('/googleaf4f33ce5f01eea5.html', (req, res) => {
 // GET /api/users/:email
 app.get('/api/users/:email', async (req, res) => {
   const email = decodeURIComponent(req.params.email).toLowerCase().trim();
+  const isSuperAdminEmail = email === 'aucikkosmonaucik@gmail.com';
+
   if (pool) {
     try {
-      const { rows } = await pool.query('SELECT raw_json FROM users WHERE LOWER(email) = $1 LIMIT 1', [email]);
+      const { rows } = await pool.query('SELECT raw_json, is_blocked, is_admin FROM users WHERE LOWER(email) = $1 LIMIT 1', [email]);
       if (rows.length > 0 && rows[0].raw_json) {
-        return res.json(rows[0].raw_json);
+        const userJson = rows[0].raw_json;
+        userJson.isBlocked = isSuperAdminEmail ? false : !!rows[0].is_blocked;
+        userJson.isAdmin = isSuperAdminEmail || !!rows[0].is_admin || !!userJson.isAdmin;
+        return res.json(userJson);
       }
       return res.status(404).json({ error: 'User not found' });
     } catch (err) {
@@ -504,7 +530,11 @@ app.get('/api/users/:email', async (req, res) => {
     }
   }
   const user = inMemoryUsers[email];
-  if (user) return res.json(user);
+  if (user) {
+    user.isAdmin = isSuperAdminEmail || !!user.isAdmin;
+    user.isBlocked = isSuperAdminEmail ? false : !!user.isBlocked;
+    return res.json(user);
+  }
   res.status(404).json({ error: 'User not found' });
 });
 
@@ -524,6 +554,9 @@ app.post('/api/users', async (req, res) => {
   const avatarUrl = profile.avatarUrl || null;
   const rating = profile.rating || 5.0;
   const completedExchanges = profile.completedExchanges || 0;
+  const isSuperAdminEmail = email === 'aucikkosmonaucik@gmail.com';
+  const isAdmin = isSuperAdminEmail || !!profile.isAdmin;
+  const isBlocked = isSuperAdminEmail ? false : !!profile.isBlocked;
 
   const normalizedProfile = {
     ...profile,
@@ -535,6 +568,8 @@ app.post('/api/users', async (req, res) => {
     avatarUrl,
     rating,
     completedExchanges,
+    isAdmin,
+    isBlocked,
   };
 
   if (pool) {
@@ -543,20 +578,22 @@ app.post('/api/users', async (req, res) => {
       let oldId = null;
       try {
         const existing = await pool.query(
-          'SELECT id, name FROM users WHERE LOWER(email) = $1 LIMIT 1',
+          'SELECT id, name, is_admin, is_blocked FROM users WHERE LOWER(email) = $1 LIMIT 1',
           [email]
         );
         if (existing.rows.length > 0) {
           if (!oldName) oldName = existing.rows[0].name;
           oldId = existing.rows[0].id;
+          if (existing.rows[0].is_admin) normalizedProfile.isAdmin = true;
+          if (existing.rows[0].is_blocked && !isSuperAdminEmail) normalizedProfile.isBlocked = true;
         }
       } catch (_) {}
 
       const query = `
         INSERT INTO users (
-          id, email, name, city, bio, avatar_url, rating, completed_exchanges, raw_json, updated_at
+          id, email, name, city, bio, avatar_url, rating, completed_exchanges, is_admin, is_blocked, raw_json, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW()
         )
         ON CONFLICT (email) DO UPDATE SET
           name = EXCLUDED.name,
@@ -565,12 +602,15 @@ app.post('/api/users', async (req, res) => {
           avatar_url = EXCLUDED.avatar_url,
           rating = EXCLUDED.rating,
           completed_exchanges = EXCLUDED.completed_exchanges,
+          is_admin = (users.is_admin OR EXCLUDED.is_admin),
+          is_blocked = (CASE WHEN LOWER(users.email) = 'aucikkosmonaucik@gmail.com' THEN false ELSE EXCLUDED.is_blocked END),
           raw_json = EXCLUDED.raw_json,
           updated_at = NOW()
         RETURNING raw_json;
       `;
       const values = [
         id, email, name, city, bio, avatarUrl, rating, completedExchanges,
+        normalizedProfile.isAdmin, normalizedProfile.isBlocked,
         JSON.stringify(normalizedProfile)
       ];
       const { rows } = await pool.query(query, values);
@@ -625,6 +665,144 @@ app.post('/api/users', async (req, res) => {
     return l;
   });
   res.status(200).json(normalizedProfile);
+});
+
+// ── Admin API Endpoints ────────────────────────────────────────────────────────
+
+// GET /api/admin/stats
+app.get('/api/admin/stats', async (req, res) => {
+  if (pool) {
+    try {
+      const listingsRes = await pool.query('SELECT COUNT(*) as count FROM listings');
+      const usersRes = await pool.query('SELECT COUNT(*) as count, COUNT(*) FILTER (WHERE is_blocked = true) as blocked FROM users');
+      const messagesRes = await pool.query('SELECT COUNT(*) as count FROM messages');
+      return res.json({
+        totalListings: parseInt(listingsRes.rows[0].count, 10),
+        totalUsers: parseInt(usersRes.rows[0].count, 10),
+        blockedUsers: parseInt(usersRes.rows[0].blocked || 0, 10),
+        totalMessages: parseInt(messagesRes.rows[0].count, 10),
+        dbConnected: true,
+      });
+    } catch (err) {
+      console.error('Error fetching admin stats:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch admin stats' });
+    }
+  }
+  return res.json({
+    totalListings: inMemoryListings.length,
+    totalUsers: Object.keys(inMemoryUsers).length,
+    blockedUsers: Object.values(inMemoryUsers).filter(u => u.isBlocked).length,
+    totalMessages: 0,
+    dbConnected: false,
+  });
+});
+
+// GET /api/admin/users
+app.get('/api/admin/users', async (req, res) => {
+  if (pool) {
+    try {
+      const { rows } = await pool.query(`
+        SELECT 
+          u.id, 
+          u.email, 
+          u.name, 
+          u.city, 
+          u.bio, 
+          u.rating, 
+          u.completed_exchanges,
+          u.is_blocked,
+          (u.is_admin OR LOWER(u.email) = 'aucikkosmonaucik@gmail.com') as is_admin,
+          u.created_at,
+          (SELECT COUNT(*) FROM listings l WHERE l.seller_id = u.id OR l.seller_name = u.name) as listings_count
+        FROM users u
+        ORDER BY u.created_at DESC
+      `);
+      return res.json(rows.map(r => ({
+        id: r.id,
+        email: r.email,
+        name: r.name,
+        city: r.city,
+        bio: r.bio,
+        rating: Number(r.rating) || 5.0,
+        completedExchanges: parseInt(r.completed_exchanges || 0, 10),
+        isBlocked: !!r.is_blocked,
+        isAdmin: !!r.is_admin,
+        createdAt: r.created_at,
+        listingsCount: parseInt(r.listings_count || 0, 10),
+      })));
+    } catch (err) {
+      console.error('Error fetching admin users:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch admin users' });
+    }
+  }
+  const users = Object.values(inMemoryUsers).map(u => ({
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    city: u.city,
+    bio: u.bio,
+    rating: u.rating || 5.0,
+    completedExchanges: u.completedExchanges || 0,
+    isBlocked: !!u.isBlocked,
+    isAdmin: u.email.toLowerCase() === 'aucikkosmonaucik@gmail.com' || !!u.isAdmin,
+    createdAt: u.createdAt || new Date().toISOString(),
+    listingsCount: inMemoryListings.filter(l => l.sellerId === u.id || l.sellerName === u.name).length,
+  }));
+  return res.json(users);
+});
+
+// POST /api/admin/users/:email/toggle-block
+app.post('/api/admin/users/:email/toggle-block', async (req, res) => {
+  const targetEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
+  if (targetEmail === 'aucikkosmonaucik@gmail.com') {
+    return res.status(400).json({ error: 'Nie można zablokować głównego konta administratora.' });
+  }
+
+  if (pool) {
+    try {
+      const userRes = await pool.query('SELECT is_blocked, raw_json FROM users WHERE LOWER(email) = $1 LIMIT 1', [targetEmail]);
+      if (userRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Użytkownik nie istnieje w bazie.' });
+      }
+      const currentBlocked = !!userRes.rows[0].is_blocked;
+      const newStatus = !currentBlocked;
+
+      await pool.query(`
+        UPDATE users
+        SET is_blocked = $1,
+            raw_json = jsonb_set(COALESCE(raw_json, '{}'::jsonb), '{isBlocked}', to_jsonb($1::boolean)),
+            updated_at = NOW()
+        WHERE LOWER(email) = $2
+      `, [newStatus, targetEmail]);
+
+      return res.json({ success: true, email: targetEmail, isBlocked: newStatus });
+    } catch (err) {
+      console.error('Error toggling user block:', err.message);
+      return res.status(500).json({ error: 'Błąd podczas zmiany statusu blokady' });
+    }
+  }
+
+  if (inMemoryUsers[targetEmail]) {
+    inMemoryUsers[targetEmail].isBlocked = !inMemoryUsers[targetEmail].isBlocked;
+    return res.json({ success: true, email: targetEmail, isBlocked: inMemoryUsers[targetEmail].isBlocked });
+  }
+  return res.status(404).json({ error: 'Użytkownik nie istnieje.' });
+});
+
+// DELETE /api/admin/listings/:id
+app.delete('/api/admin/listings/:id', async (req, res) => {
+  const { id } = req.params;
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM listings WHERE id = $1', [id]);
+      return res.json({ success: true, id, message: 'Ogłoszenie zostało usunięte przez administratora.' });
+    } catch (err) {
+      console.error('Error admin deleting listing:', err.message);
+      return res.status(500).json({ error: 'Błąd podczas usuwania ogłoszenia' });
+    }
+  }
+  inMemoryListings = inMemoryListings.filter(l => l.id !== id);
+  return res.json({ success: true, id, message: 'Ogłoszenie zostało usunięte przez administratora.' });
 });
 
 // ── Dynamic Open Graph & Static Flutter Web Serving ────────────────────────────

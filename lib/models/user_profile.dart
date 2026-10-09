@@ -8,6 +8,8 @@ class UserProfile {
   final DateTime createdAt;
   final double rating;
   final int completedExchanges;
+  final bool isAdmin;
+  final bool isBlocked;
 
   const UserProfile({
     required this.id,
@@ -19,7 +21,12 @@ class UserProfile {
     required this.createdAt,
     this.rating = 5.0,
     this.completedExchanges = 0,
+    this.isAdmin = false,
+    this.isBlocked = false,
   });
+
+  bool get isSuperAdmin =>
+      email.trim().toLowerCase() == 'aucikkosmonaucik@gmail.com' || isAdmin;
 
   String get initials {
     final parts = name.trim().split(' ');
@@ -39,6 +46,8 @@ class UserProfile {
     DateTime? createdAt,
     double? rating,
     int? completedExchanges,
+    bool? isAdmin,
+    bool? isBlocked,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -50,6 +59,8 @@ class UserProfile {
       createdAt: createdAt ?? this.createdAt,
       rating: rating ?? this.rating,
       completedExchanges: completedExchanges ?? this.completedExchanges,
+      isAdmin: isAdmin ?? this.isAdmin,
+      isBlocked: isBlocked ?? this.isBlocked,
     );
   }
 
@@ -64,14 +75,18 @@ class UserProfile {
       'createdAt': createdAt.toIso8601String(),
       'rating': rating,
       'completedExchanges': completedExchanges,
+      'isAdmin': isSuperAdmin,
+      'isBlocked': isBlocked,
     };
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final email = json['email'] as String? ?? '';
+    final isSuper = email.trim().toLowerCase() == 'aucikkosmonaucik@gmail.com';
     return UserProfile(
       id: json['id'] as String? ?? 'user_guest',
       name: json['name'] as String? ?? 'Czytelnik',
-      email: json['email'] as String? ?? '',
+      email: email,
       city: json['city'] as String? ?? 'Warszawa',
       bio: json['bio'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
@@ -80,6 +95,8 @@ class UserProfile {
           : DateTime.now(),
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       completedExchanges: (json['completedExchanges'] as num?)?.toInt() ?? 0,
+      isAdmin: isSuper || (json['isAdmin'] as bool? ?? false),
+      isBlocked: isSuper ? false : (json['isBlocked'] as bool? ?? false),
     );
   }
 }
