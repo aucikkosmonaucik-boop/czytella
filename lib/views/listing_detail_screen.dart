@@ -38,11 +38,19 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       return false;
     }
     final user = provider.currentUser!;
+    if (_currentListing.isUserListing) {
+      return true;
+    }
     if (_currentListing.sellerId == user.id ||
         _currentListing.sellerName == user.name) {
       return true;
     }
-    if (_currentListing.isUserListing && _currentListing.sellerId == 'current_user') {
+    if (provider.userBooks.any((ub) =>
+        ub.book.id == _currentListing.book.id ||
+        (ub.book.title.trim().toLowerCase() ==
+                _currentListing.book.title.trim().toLowerCase() &&
+            ub.book.author.trim().toLowerCase() ==
+                _currentListing.book.author.trim().toLowerCase()))) {
       return true;
     }
     return false;

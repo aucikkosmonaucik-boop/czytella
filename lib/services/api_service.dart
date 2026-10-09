@@ -163,14 +163,18 @@ class ApiService {
   }
 
   /// Save or update user profile permanently in PostgreSQL backend
-  static Future<bool> saveUserProfile(UserProfile profile) async {
+  static Future<bool> saveUserProfile(UserProfile profile, {String? previousName}) async {
     try {
       final uri = _getUri('/api/users');
+      final data = profile.toJson();
+      if (previousName != null && previousName.trim().isNotEmpty) {
+        data['previousName'] = previousName.trim();
+      }
       final res = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json; charset=utf-8'},
-            body: json.encode(profile.toJson()),
+            body: json.encode(data),
           )
           .timeout(const Duration(seconds: 8));
       return res.statusCode == 200 || res.statusCode == 201;

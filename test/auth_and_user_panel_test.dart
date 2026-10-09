@@ -374,6 +374,63 @@ void main() {
     expect(updatedConv.messages.last.text, 'Cześć! Chętnie wymienię tę książkę.');
     expect(updatedConv.messages.last.senderName, 'Marek Czytający');
   });
+
+  test('Updating nickname syncs all user listings sellerName and preserves shelf ownership', () async {
+    final provider = CzytellaProvider();
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // 1. Register user with nickname "Grun"
+    await provider.register(
+      name: 'Grun',
+      email: 'grun@czytella.pl',
+      password: 'password123',
+      city: 'Warszawa',
+    );
+    expect(provider.currentUser?.name, 'Grun');
+
+    // 2. User creates a listing
+    final book = Book(
+      id: 'book_test_1',
+      isbn: '9788300000001',
+      title: 'Solaris',
+      author: 'Stanisław Lem',
+      condition: BookCondition.veryGood,
+    );
+
+    provider.createDirectListing(
+      book: book,
+      type: ListingType.both,
+      price: 25.0,
+      city: 'Warszawa',
+    );
+
+    expect(provider.allListings.length, greaterThanOrEqualTo(1));
+    final listing = provider.allListings.firstWhere((l) => l.book.title == 'Solaris');
+    expect(listing.sellerName, 'Grun');
+    expect(listing.isUserListing, isTrue);
+
+    // Verify it is on user's shelf
+    expect(provider.userBooks.any((ub) => ub.book.title == 'Solaris'), isTrue);
+
+    // 3. User updates nickname from "Grun" to "Stanisław G."
+    await provider.updateProfile(
+      name: 'Stanisław G.',
+      city: 'Kraków',
+    );
+
+    // Verify currentUser is updated
+    expect(provider.currentUser?.name, 'Stanisław G.');
+    expect(provider.currentUser?.city, 'Kraków');
+
+    // Verify listing sellerName changed and isUserListing remains true!
+    final updatedListing = provider.allListings.firstWhere((l) => l.book.title == 'Solaris');
+    expect(updatedListing.sellerName, 'Stanisław G.');
+    expect(updatedListing.city, 'Kraków');
+    expect(updatedListing.isUserListing, isTrue);
+
+    // Verify book is still on user shelf
+    expect(provider.userBooks.any((ub) => ub.book.title == 'Solaris'), isTrue);
+  });
 }
 
 

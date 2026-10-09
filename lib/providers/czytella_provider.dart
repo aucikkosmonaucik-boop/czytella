@@ -296,9 +296,23 @@ class CzytellaProvider with ChangeNotifier {
   }
 
   void removeUserBook(String id) {
-    _userBooks.removeWhere((b) => b.id == id);
-    notifyListeners();
-    _saveState();
+    final index = _userBooks.indexWhere((b) => b.id == id);
+    if (index != -1) {
+      final ub = _userBooks[index];
+      if (ub.isListed) {
+        final listIdx = _listings.indexWhere((l) =>
+            l.book.id == ub.book.id ||
+            l.book.title.trim().toLowerCase() ==
+                ub.book.title.trim().toLowerCase());
+        if (listIdx != -1) {
+          final removed = _listings.removeAt(listIdx);
+          ApiService.deleteListing(removed.id);
+        }
+      }
+      _userBooks.removeAt(index);
+      notifyListeners();
+      _saveState();
+    }
   }
 
   void publishUserBookAsListing(
@@ -629,20 +643,98 @@ class CzytellaProvider with ChangeNotifier {
     _currentUser = profile;
     _currentCity = profile.city;
     _recalculateListingOwnership();
+    _syncUserBooksWithListings();
     await _saveState();
     notifyListeners();
     ApiService.saveUserProfile(profile);
     return true;
   }
 
-  void _recalculateListingOwnership() {
+  bool _isListingMine(Listing l, {String? previousName, String? previousId}) {
+    if (_currentUser == null) return false;
+    if (l.sellerId == _currentUser!.id) return true;
+    if (previousId != null && l.sellerId == previousId) return true;
+    if (l.sellerName == _currentUser!.name) return true;
+    if (previousName != null && l.sellerName == previousName) return true;
+    if (l.sellerId == 'current_user' && (l.isUserListing || l.sellerName == 'Grun')) return true;
+    if (_userBooks.any((ub) =>
+        ub.book.id == l.book.id ||
+        (ub.book.title.trim().toLowerCase() ==
+                l.book.title.trim().toLowerCase() &&
+            ub.book.author.trim().toLowerCase() ==
+                l.book.author.trim().toLowerCase()))) {
+      return true;
+    }
+    return false;
+  }
+
+  void _recalculateListingOwnership({String? previousName, String? previousId}) {
     _listings = _listings.map((l) {
-      final isMine = _currentUser != null &&
-          (l.sellerId == _currentUser!.id ||
-              l.sellerName == _currentUser!.name ||
-              (l.sellerId == 'current_user' && l.isUserListing));
-      return l.copyWith(isUserListing: isMine);
+      final isMine = _isListingMine(l,
+          previousName: previousName, previousId: previousId);
+      return l.copyWith(
+        isUserListing: isMine,
+        sellerName: isMine ? _currentUser!.name : l.sellerName,
+        sellerId: isMine ? _currentUser!.id : l.sellerId,
+        city: (isMine && _currentUser != null && _currentUser!.city.trim().isNotEmpty)
+            ? _currentUser!.city
+            : l.city,
+      );
     }).toList();
+  }
+
+  void _syncUserBooksWithListings() {
+    if (_currentUser == null) return;
+    bool changed = false;
+
+    final myListings = _listings.where((l) => _isListingMine(l)).toList();
+
+    for (final listing in myListings) {
+      final index = _userBooks.indexWhere((ub) =>
+          ub.book.id == listing.book.id ||
+          (ub.book.title.trim().toLowerCase() ==
+                  listing.book.title.trim().toLowerCase() &&
+              ub.book.author.trim().toLowerCase() ==
+                  listing.book.author.trim().toLowerCase()));
+
+      final expectedType = listing.type == ListingType.exchange
+          ? UserBookType.forExchange
+          : listing.type == ListingType.sale
+              ? UserBookType.forSale
+              : UserBookType.both;
+
+      if (index == -1) {
+        final importedUserBook = UserBook(
+          id: 'ub_${listing.id}',
+          book: listing.book,
+          type: expectedType,
+          price: listing.price,
+          isListed: true,
+          preferredExchangeGenres: listing.exchangePreferences,
+        );
+        _userBooks.add(importedUserBook);
+        changed = true;
+      } else {
+        final existing = _userBooks[index];
+        if (!existing.isListed ||
+            existing.price != listing.price ||
+            existing.type != expectedType ||
+            existing.preferredExchangeGenres != listing.exchangePreferences) {
+          _userBooks[index] = existing.copyWith(
+            isListed: true,
+            price: listing.price,
+            type: expectedType,
+            preferredExchangeGenres: listing.exchangePreferences,
+          );
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      _saveState();
+      notifyListeners();
+    }
   }
 
   Future<bool> login({
@@ -658,6 +750,7 @@ class CzytellaProvider with ChangeNotifier {
       _currentUser = remoteProfile;
       _currentCity = remoteProfile.city;
       _recalculateListingOwnership();
+      _syncUserBooksWithListings();
       await _saveState();
       notifyListeners();
       return true;
@@ -674,6 +767,7 @@ class CzytellaProvider with ChangeNotifier {
           _currentUser = profile;
           _currentCity = profile.city;
           _recalculateListingOwnership();
+          _syncUserBooksWithListings();
           await _saveState();
           notifyListeners();
           ApiService.saveUserProfile(profile);
@@ -699,6 +793,7 @@ class CzytellaProvider with ChangeNotifier {
     );
     _currentUser = newProfile;
     _recalculateListingOwnership();
+    _syncUserBooksWithListings();
     await _saveState();
     notifyListeners();
     ApiService.saveUserProfile(newProfile);
@@ -721,6 +816,9 @@ class CzytellaProvider with ChangeNotifier {
     String? bio,
   }) async {
     if (_currentUser == null) return;
+    final previousName = _currentUser!.name;
+    final previousId = _currentUser!.id;
+
     final updatedProfile = _currentUser!.copyWith(
       name: (name != null && name.trim().isNotEmpty) ? name.trim() : null,
       city: (city != null && city.trim().isNotEmpty) ? city.trim() : null,
@@ -732,21 +830,33 @@ class CzytellaProvider with ChangeNotifier {
     }
 
     // Keep listings by this user in sync with updated seller name and city
-    _listings = _listings.map((l) {
-      if (l.sellerId == updatedProfile.id || l.isUserListing) {
-        return l.copyWith(
-          sellerName: updatedProfile.name,
-          city: updatedProfile.city,
-        );
-      }
-      return l;
-    }).toList();
+    final updatedListings = <Listing>[];
+    for (final l in _listings) {
+      final isMine = _isListingMine(l,
+          previousName: previousName, previousId: previousId);
 
+      if (isMine) {
+        final updated = l.copyWith(
+          sellerName: updatedProfile.name,
+          sellerId: updatedProfile.id,
+          city: updatedProfile.city,
+          isUserListing: true,
+        );
+        updatedListings.add(updated);
+        // Persist each listing in backend database
+        ApiService.updateListing(updated);
+      } else {
+        updatedListings.add(l);
+      }
+    }
+    _listings = updatedListings;
+
+    _syncUserBooksWithListings();
     await _saveState();
     notifyListeners();
 
     // Persist permanently in Railway PostgreSQL database
-    ApiService.saveUserProfile(updatedProfile);
+    ApiService.saveUserProfile(updatedProfile, previousName: previousName);
   }
 
   // --- PERSISTENCE ---
@@ -802,10 +912,12 @@ class CzytellaProvider with ChangeNotifier {
         _listings = decoded
             .map((e) => Listing.fromJson(e))
             .map((l) {
-              final isMine = _currentUser != null &&
-                  (l.sellerId == _currentUser!.id ||
-                      l.sellerName == _currentUser!.name);
-              return l.copyWith(isUserListing: isMine);
+              final isMine = _isListingMine(l);
+              return l.copyWith(
+                isUserListing: isMine,
+                sellerName: isMine ? _currentUser!.name : l.sellerName,
+                sellerId: isMine ? _currentUser!.id : l.sellerId,
+              );
             })
             .toList();
       } else {
@@ -848,6 +960,8 @@ class CzytellaProvider with ChangeNotifier {
       _currentUser = null;
     } finally {
       _isInitialized = true;
+      _recalculateListingOwnership();
+      _syncUserBooksWithListings();
       notifyListeners();
       _syncWithBackendListings();
     }
@@ -858,19 +972,27 @@ class CzytellaProvider with ChangeNotifier {
       final remoteListings = await ApiService.fetchListings();
       if (remoteListings.isNotEmpty) {
         final updated = remoteListings.map((l) {
-          final isMine = _currentUser != null &&
-              (l.sellerId == _currentUser!.id ||
-                  l.sellerName == _currentUser!.name);
-          return l.copyWith(isUserListing: isMine);
+          final isMine = _isListingMine(l);
+          return l.copyWith(
+            isUserListing: isMine,
+            sellerName: isMine ? _currentUser!.name : l.sellerName,
+            sellerId: isMine ? _currentUser!.id : l.sellerId,
+          );
         }).toList();
 
         final hasChanged = _listings.length != updated.length ||
-            !_listings.every((existing) => updated.any((u) => u.id == existing.id && u.book.title == existing.book.title));
+            !_listings.every((existing) => updated.any((u) =>
+                u.id == existing.id &&
+                u.book.title == existing.book.title &&
+                u.sellerName == existing.sellerName));
 
         if (hasChanged) {
           _listings = updated;
+          _syncUserBooksWithListings();
           notifyListeners();
           _saveState();
+        } else {
+          _syncUserBooksWithListings();
         }
       }
     } catch (e) {
@@ -879,21 +1001,7 @@ class CzytellaProvider with ChangeNotifier {
   }
 
   Future<void> refreshListings() async {
-    try {
-      final remoteListings = await ApiService.fetchListings();
-      if (remoteListings.isNotEmpty) {
-        _listings = remoteListings.map((l) {
-          final isMine = _currentUser != null &&
-              (l.sellerId == _currentUser!.id ||
-                  l.sellerName == _currentUser!.name);
-          return l.copyWith(isUserListing: isMine);
-        }).toList();
-        notifyListeners();
-        _saveState();
-      }
-    } catch (e) {
-      debugPrint('Refresh listings error: $e');
-    }
+    await _syncWithBackendListings();
   }
 
   Future<void> _saveState() async {

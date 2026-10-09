@@ -95,6 +95,29 @@ async function initTables() {
   try {
     await pool.query(sql);
     console.log('✅ Database tables initialized (listings, messages).');
+
+    // Harmonize listings raw_json with column values for seller_name, city, and seller_id
+    try {
+      await pool.query(`
+        UPDATE listings
+        SET raw_json = jsonb_set(
+          jsonb_set(
+            jsonb_set(raw_json, '{sellerName}', to_jsonb(seller_name::text)),
+            '{city}', to_jsonb(city::text)
+          ),
+          '{sellerId}', to_jsonb(seller_id::text)
+        )
+        WHERE raw_json IS NOT NULL
+          AND (
+            (raw_json->>'sellerName') IS DISTINCT FROM seller_name
+            OR (raw_json->>'city') IS DISTINCT FROM city
+            OR (raw_json->>'sellerId') IS DISTINCT FROM seller_id
+          );
+      `);
+      console.log('✅ Synchronized listings raw_json with column values.');
+    } catch (syncErr) {
+      console.warn('Listing column sync note:', syncErr.message);
+    }
   } catch (err) {
     console.error('❌ Error initializing tables:', err.message);
   }
@@ -211,8 +234,21 @@ async function findListingById(listingId) {
 app.get('/api/listings', async (req, res) => {
   if (pool) {
     try {
-      const { rows } = await pool.query('SELECT raw_json FROM listings ORDER BY created_at DESC');
-      const listings = rows.map(r => r.raw_json).filter(Boolean);
+      const { rows } = await pool.query('SELECT raw_json, seller_name, city, seller_id FROM listings ORDER BY created_at DESC');
+      const listings = rows.map(r => {
+        const raw = r.raw_json;
+        if (!raw) return null;
+        if (r.seller_name && raw.sellerName !== r.seller_name) {
+          raw.sellerName = r.seller_name;
+        }
+        if (r.city && raw.city !== r.city) {
+          raw.city = r.city;
+        }
+        if (r.seller_id && raw.sellerId !== r.seller_id) {
+          raw.sellerId = r.seller_id;
+        }
+        return raw;
+      }).filter(Boolean);
       return res.json(listings);
     } catch (err) {
       console.error('Error fetching listings from DB:', err.message);
@@ -372,6 +408,9 @@ app.put('/api/listings/:id', async (req, res) => {
   if (pool) {
     try {
       const book = listing.book || {};
+      const sellerName = listing.sellerName || 'Anonimowy Czytelnik';
+      const sellerId = listing.sellerId || 'unknown';
+      const cleanListing = { ...listing, sellerName, sellerId };
       const query = `
         UPDATE listings SET
           title = $2,
@@ -387,7 +426,9 @@ app.put('/api/listings/:id', async (req, res) => {
           type = $12,
           price = $13,
           exchange_preferences = $14,
-          raw_json = $15
+          seller_name = $15,
+          seller_id = $16,
+          raw_json = $17
         WHERE id = $1
       `;
       const values = [
@@ -405,10 +446,12 @@ app.put('/api/listings/:id', async (req, res) => {
         listing.type || 'both',
         listing.price,
         listing.exchangePreferences,
-        JSON.stringify(listing)
+        sellerName,
+        sellerId,
+        JSON.stringify(cleanListing)
       ];
       await pool.query(query, values);
-      return res.json(listing);
+      return res.json(cleanListing);
     } catch (err) {
       console.error('Error updating listing in DB:', err.message);
       return res.status(500).json({ error: 'Failed to update listing' });
@@ -475,6 +518,7 @@ app.post('/api/users', async (req, res) => {
   const email = profile.email.toLowerCase().trim();
   const id = profile.id || `user_${Date.now()}`;
   const name = profile.name.trim();
+  const previousName = profile.previousName ? profile.previousName.trim() : null;
   const city = (profile.city || 'Warszawa').trim();
   const bio = profile.bio ? profile.bio.trim() : null;
   const avatarUrl = profile.avatarUrl || null;
@@ -495,6 +539,19 @@ app.post('/api/users', async (req, res) => {
 
   if (pool) {
     try {
+      let oldName = previousName;
+      let oldId = null;
+      try {
+        const existing = await pool.query(
+          'SELECT id, name FROM users WHERE LOWER(email) = $1 LIMIT 1',
+          [email]
+        );
+        if (existing.rows.length > 0) {
+          if (!oldName) oldName = existing.rows[0].name;
+          oldId = existing.rows[0].id;
+        }
+      } catch (_) {}
+
       const query = `
         INSERT INTO users (
           id, email, name, city, bio, avatar_url, rating, completed_exchanges, raw_json, updated_at
@@ -518,12 +575,29 @@ app.post('/api/users', async (req, res) => {
       ];
       const { rows } = await pool.query(query, values);
 
-      // Sync seller name and city to existing listings of this seller
+      // Sync seller name, city, and seller_id to existing listings of this seller (updating columns AND raw_json)
       try {
         await pool.query(
-          'UPDATE listings SET seller_name = $1, city = $2 WHERE seller_id = $3',
-          [name, city, id]
+          `UPDATE listings
+           SET seller_name = $1,
+               city = $2,
+               seller_id = $3,
+               raw_json = jsonb_set(
+                 jsonb_set(
+                   jsonb_set(raw_json, '{sellerName}', to_jsonb($1::text)),
+                   '{city}', to_jsonb($2::text)
+                 ),
+                 '{sellerId}', to_jsonb($3::text)
+               )
+           WHERE seller_id = $3
+              OR ($4::text IS NOT NULL AND (seller_name = $4 OR raw_json->>'sellerName' = $4))
+              OR ($5::text IS NOT NULL AND seller_id = $5)
+              OR (seller_id = 'current_user' AND ($4::text IS NOT NULL AND (seller_name = $4 OR raw_json->>'sellerName' = $4)))
+              OR (seller_id = 'current_user' AND (seller_name = 'Grun' OR raw_json->>'sellerName' = 'Grun'))
+              OR (seller_name = 'Grun' AND $1 != 'Grun');`,
+          [name, city, id, oldName, oldId]
         );
+        console.log(`✅ Synchronized listings seller details for user ${name} (previous: ${oldName || 'none'})`);
       } catch (listErr) {
         console.warn('Could not update listings seller name:', listErr.message);
       }
@@ -536,6 +610,20 @@ app.post('/api/users', async (req, res) => {
   }
 
   inMemoryUsers[email] = normalizedProfile;
+  inMemoryListings = inMemoryListings.map(l => {
+    if (l.sellerId === id ||
+        (oldName && (l.sellerName === oldName || l.sellerId === oldId)) ||
+        (l.sellerName === 'Grun' && name !== 'Grun') ||
+        l.sellerId === 'current_user') {
+      return {
+        ...l,
+        sellerName: name,
+        city: city,
+        sellerId: id,
+      };
+    }
+    return l;
+  });
   res.status(200).json(normalizedProfile);
 });
 
